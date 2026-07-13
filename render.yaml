@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: kin-shared-workspace
+    runtime: static
+    buildCommand: echo "Kin is a static site; no build step required."
+    staticPublishPath: ./
+    autoDeployTrigger: commit
+    headers:
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin

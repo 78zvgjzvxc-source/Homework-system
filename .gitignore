@@ -1,0 +1,9 @@
+# Local previews and scratch files
+kin-preview.png
+kin-graph-preview.png
+untitile
+
+# Editor and operating-system files
+.vscode/
+.DS_Store
+Thumbs.db
