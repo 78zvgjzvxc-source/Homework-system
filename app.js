@@ -70,6 +70,9 @@
   let cloudTimer = null;
   let graphData = { nodes: [], edges: [] };
   let graphZoom = 1;
+  let selectedLoginPerson = "me";
+  let presenceMembers = [];
+  let localPreview = false;
 
   function scheduleCloudSync() {
     if (!cloudStatus.workspace || !window.KinCloud) return;
@@ -174,6 +177,18 @@
       $(`#overviewTasks${suffix}`).textContent = tasks.length;
       $(`#overviewClasses${suffix}`).textContent = classes.length;
       $(`#overviewNext${suffix}`).textContent = classes.length ? `Next: ${classes[0].start} · ${classes[0].courseCode || classes[0].title}${classes[0].location ? ` · ${classes[0].location}` : ""}` : "No classes scheduled today";
+    });
+    renderPresence();
+  }
+
+  function renderPresence() {
+    const viewNames = { home: "Today", tasks: "Tasks", courses: "Courses", week: "This week", timetable: "Timetables", vault: "Vault", graph: "Knowledge graph" };
+    [["me", "One"], ["partner", "Two"]].forEach(([slot, suffix]) => {
+      const member = [...presenceMembers].reverse().find((item) => item.slot === slot);
+      const el = $(`#presence${suffix}`);
+      if (!el) return;
+      el.classList.toggle("offline", !member);
+      el.innerHTML = `<i></i>${member ? `Online · Viewing ${escapeHtml(viewNames[member.view] || "Kin")}` : "Offline"}`;
     });
   }
 
@@ -494,6 +509,7 @@
     $$(".nav-item").forEach((el) => el.classList.toggle("active", el.dataset.viewTarget === view));
     closeSidebar();
     if (history.replaceState) history.replaceState(null, "", `#${view}`);
+    if (cloudStatus.workspace && window.KinCloud?.updatePresence) window.KinCloud.updatePresence(view).catch(() => {});
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -633,6 +649,30 @@
     $("#cloudError").classList.toggle("hidden", !error);
   }
 
+  function loginError(error = "") {
+    $("#loginError").textContent = error;
+    $("#loginError").classList.toggle("hidden", !error);
+  }
+
+  function updateLoginPerson(slot) {
+    selectedLoginPerson = slot;
+    $$("[data-login-person]").forEach((button) => {
+      const selected = button.dataset.loginPerson === slot;
+      button.classList.toggle("active", selected);
+      button.setAttribute("aria-pressed", String(selected));
+    });
+    const name = slot === "partner" ? PEOPLE.partner : PEOPLE.name;
+    $("#loginForm .login-submit span").textContent = `Sign in as ${name.split(" ")[0]}`;
+  }
+
+  function updateAuthGate() {
+    const canOpenApp = cloudStatus.signedIn || localPreview;
+    $("#authGate").classList.toggle("hidden", canOpenApp);
+    $("#appShell").classList.toggle("auth-locked", !canOpenApp);
+    $("#localPreviewBtn").classList.toggle("hidden", Boolean(cloudStatus.configured));
+    document.body.style.overflow = canOpenApp ? "" : "hidden";
+  }
+
   function updateCloudUI() {
     const configured = Boolean(cloudStatus.configured);
     $("#cloudNotConfigured").classList.toggle("hidden", configured);
@@ -644,6 +684,7 @@
     $("#workspaceInviteCode").textContent = cloudStatus.workspace?.invite_code || "——————";
     $("#syncCardTitle").textContent = cloudStatus.workspace ? "Synced together" : cloudStatus.signedIn ? "Finish cloud setup" : "Invite your person";
     $("#syncCardStatus").textContent = cloudStatus.workspace ? "Supabase live" : configured ? "Sign in to connect" : "Add Supabase keys";
+    updateAuthGate();
   }
 
   async function loadCloudWorkspace() {
@@ -669,13 +710,32 @@
     });
   }
 
+  function subscribePresence() {
+    if (!cloudStatus.workspace || !window.KinCloud.startPresence) return;
+    const activeView = $(".view.active")?.dataset.view || "home";
+    window.KinCloud.startPresence(activeView, (members) => {
+      presenceMembers = members;
+      renderPresence();
+    }).catch((error) => toast(`Presence unavailable: ${error.message}`));
+  }
+
+  async function enterCloudWorkspace() {
+    if (!cloudStatus.workspace) return;
+    await loadCloudWorkspace();
+    subscribeCloud();
+    subscribePresence();
+    updateLoginPerson(currentSlot());
+  }
+
   async function initCloud() {
     try {
       cloudStatus = await window.KinCloud.init();
       updateCloudUI();
-      if (cloudStatus.workspace) { await loadCloudWorkspace(); subscribeCloud(); }
+      if (cloudStatus.workspace) await enterCloudWorkspace();
+      else if (cloudStatus.signedIn) setTimeout(() => { updateCloudUI(); $("#cloudModal").showModal(); }, 80);
     } catch (error) {
       cloudError(error.message);
+      loginError(`Could not connect to Supabase: ${error.message}`);
       toast(`Supabase connection failed: ${error.message}`);
     }
   }
@@ -788,12 +848,59 @@
   $("#graphZoomIn").addEventListener("click", () => { graphZoom = Math.min(1.5, graphZoom + .1); $("#knowledgeGraph").style.transform = `scale(${graphZoom})`; $("#graphZoomLabel").textContent = `${Math.round(graphZoom * 100)}%`; });
   $("#graphZoomOut").addEventListener("click", () => { graphZoom = Math.max(.6, graphZoom - .1); $("#knowledgeGraph").style.transform = `scale(${graphZoom})`; $("#graphZoomLabel").textContent = `${Math.round(graphZoom * 100)}%`; });
   $("#generatePlanBtn").addEventListener("click", generateSmartPlan);
+  $$('[data-login-person]').forEach((button) => button.addEventListener("click", () => updateLoginPerson(button.dataset.loginPerson)));
+  $("#toggleLoginPassword").addEventListener("click", () => {
+    const input = $("#loginPassword");
+    const reveal = input.type === "password";
+    input.type = reveal ? "text" : "password";
+    $("#toggleLoginPassword").textContent = reveal ? "Hide" : "Show";
+    $("#toggleLoginPassword").setAttribute("aria-label", reveal ? "Hide password" : "Show password");
+  });
+  $("#loginForm").addEventListener("submit", async (event) => {
+    event.preventDefault(); loginError();
+    if (!cloudStatus.configured) { loginError("Supabase is not configured yet. Use local preview or add your project keys."); return; }
+    const submit = $("#loginForm .login-submit");
+    submit.disabled = true; submit.querySelector("span").textContent = "Signing in…";
+    try {
+      cloudStatus = await window.KinCloud.signIn($("#loginEmail").value.trim(), $("#loginPassword").value);
+      updateCloudUI();
+      if (cloudStatus.workspace) await enterCloudWorkspace();
+      else { updateCloudUI(); $("#cloudModal").showModal(); }
+      toast(`Welcome back, ${ownerLabel(currentSlot()).split(" ")[0]}.`);
+    } catch (error) { loginError(error.message); }
+    finally { submit.disabled = false; updateLoginPerson(selectedLoginPerson); }
+  });
+  $("#loginCreateAccount").addEventListener("click", async () => {
+    loginError();
+    const email = $("#loginEmail").value.trim();
+    const password = $("#loginPassword").value;
+    if (!cloudStatus.configured) { loginError("Supabase is not configured yet. Add the project URL and publishable key first."); return; }
+    if (!email || password.length < 6) { loginError("Enter an email and a password with at least 6 characters first."); return; }
+    try {
+      const result = await window.KinCloud.signUp(email, password);
+      cloudStatus = result; updateCloudUI();
+      if (result.confirmationRequired) loginError("Account created. Check your email, confirm it, then return here to sign in.");
+      else { $("#cloudModal").showModal(); toast("Account created. Now create or join your shared workspace."); }
+    } catch (error) { loginError(error.message); }
+  });
+  $("#localPreviewBtn").addEventListener("click", () => { localPreview = true; updateAuthGate(); renderAll(); });
   $("#notificationButton").addEventListener("click", (event) => { event.stopPropagation(); $("#accountPopover").classList.add("hidden"); $("#notificationPopover").classList.toggle("hidden"); renderNotifications(); });
   $("#accountButton").addEventListener("click", (event) => { event.stopPropagation(); $("#notificationPopover").classList.add("hidden"); $("#accountPopover").classList.toggle("hidden"); renderHeader(); });
   $("#markNotificationsRead").addEventListener("click", () => { localStorage.setItem("kin-notifications-read", String(Date.now())); renderNotifications(); toast("Notifications marked as read."); });
   $("#accountSettingsAction").addEventListener("click", () => { $("#accountPopover").classList.add("hidden"); $("#settingsName").value = state.profile.name; $("#settingsPartner").value = state.profile.partner; $("#settingsModal").showModal(); });
   $("#accountCloudAction").addEventListener("click", () => { $("#accountPopover").classList.add("hidden"); cloudError(); updateCloudUI(); $("#cloudModal").showModal(); });
   $("#accountActivityAction").addEventListener("click", () => { $("#accountPopover").classList.add("hidden"); renderActivity(); $("#activityModal").showModal(); });
+  $("#accountSwitchAction").addEventListener("click", async () => {
+    $("#accountPopover").classList.add("hidden");
+    if (!cloudStatus.signedIn) { localPreview = false; updateAuthGate(); return; }
+    try {
+      cloudStatus = await window.KinCloud.signOut();
+      presenceMembers = []; localPreview = false;
+      $("#loginPassword").value = "";
+      updateCloudUI(); renderPresence();
+      toast("Signed out on this device. Choose the other account to continue.");
+    } catch (error) { toast(error.message); }
+  });
   $("#activityClose").addEventListener("click", () => $("#activityModal").close());
   $("#importCalendarBtn").addEventListener("click", () => $("#calendarFileInput").click());
   $("#exportCalendarBtn").addEventListener("click", exportIcs);
@@ -817,7 +924,7 @@
     try {
       cloudStatus = await window.KinCloud.signIn($("#cloudEmail").value.trim(), $("#cloudPassword").value);
       updateCloudUI();
-      if (cloudStatus.workspace) { await loadCloudWorkspace(); subscribeCloud(); }
+      if (cloudStatus.workspace) await enterCloudWorkspace();
       toast("Signed in to Supabase.");
     } catch (error) { cloudError(error.message); }
   });
@@ -830,7 +937,7 @@
     } catch (error) { cloudError(error.message); }
   });
   $("#cloudSignOut").addEventListener("click", async () => {
-    try { cloudStatus = await window.KinCloud.signOut(); updateCloudUI(); toast("Signed out. Local data remains on this device."); } catch (error) { cloudError(error.message); }
+    try { cloudStatus = await window.KinCloud.signOut(); presenceMembers = []; localPreview = false; $("#cloudModal").close(); updateCloudUI(); renderPresence(); toast("Signed out on this device. Local data remains cached."); } catch (error) { cloudError(error.message); }
   });
   $("#createWorkspaceBtn").addEventListener("click", async () => {
     cloudError();
@@ -838,7 +945,7 @@
       await window.KinCloud.createWorkspace(state.profile);
       cloudStatus = window.KinCloud.status();
       await window.KinCloud.syncState(state);
-      updateCloudUI(); subscribeCloud();
+      updateCloudUI(); subscribeCloud(); subscribePresence();
       toast("Shared workspace created and local data uploaded.");
     } catch (error) { cloudError(error.message); }
   });
@@ -847,7 +954,7 @@
     try {
       await window.KinCloud.joinWorkspace($("#inviteCodeInput").value);
       cloudStatus = window.KinCloud.status();
-      await loadCloudWorkspace(); updateCloudUI(); subscribeCloud();
+      await loadCloudWorkspace(); updateCloudUI(); subscribeCloud(); subscribePresence(); updateLoginPerson(currentSlot());
       toast("Joined your shared workspace.");
     } catch (error) { cloudError(error.message); }
   });

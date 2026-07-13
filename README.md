@@ -25,13 +25,21 @@ The website automatically uses local storage until Supabase is configured. Once 
 - Quick-capture a note with `N`
 - Responsive desktop and mobile layout
 - Supabase email authentication and secure two-person workspaces
+- A dedicated two-profile login page with safe on-device account switching
 - Live updates between both users with Supabase Realtime
+- Live presence showing whether each person is online and which Kin section they are viewing
 - Interactive knowledge graph generated from notes, tags, spaces, and tasks
 - Knowledge graph export as JSON or SVG
 - Identity-aware personal task views for Aiman Firdaus and Abyadina Irisha
 - A combined dashboard showing both workloads and today's classes
 - Separate weekly timetables with a shared comparison view
 - Private personal-Brain memories protected by RLS, plus shared-Brain memories
+
+## Signing in and switching people
+
+Aiman and Abyadina each create and use a separate Supabase email/password account. Choosing a person on the login page changes the interface label only; it never bypasses authentication or stores the other person's password. Use the top-right account menu and **Switch account** to sign out locally and return to the two-person login page. Other signed-in devices remain connected.
+
+Once both accounts belong to the same Kin workspace, the shared dashboard shows online/offline presence and the section each person is viewing. Detailed changes also appear in Activity history. Private Brain note contents remain visible only to their owner.
 
 ## Upgrade an existing database to the two-person model
 

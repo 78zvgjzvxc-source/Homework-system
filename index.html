@@ -12,7 +12,37 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <div class="app-shell">
+  <section class="auth-gate" id="authGate" aria-labelledby="authTitle">
+    <div class="auth-visual">
+      <a class="auth-brand" href="#" aria-label="Kin home"><span class="brand-mark"><svg viewBox="0 0 32 32"><path d="M8.5 6.5v19M23.5 6.5v19M9 16h14M10 7l13 18M22 7 9 25"/></svg></span><span>kin</span></a>
+      <div class="auth-visual-copy"><span class="auth-kicker">YOUR SHARED SECOND BRAIN</span><h2>Two lives.<br>One calm place.</h2><p>Keep your own tasks, courses, timetable, and private Brain—while staying connected to the person who matters.</p></div>
+      <div class="auth-orbit" aria-hidden="true"><span class="orbit-person one">A</span><span class="orbit-line"></span><span class="orbit-heart">♥</span><span class="orbit-person two">A</span></div>
+      <p class="auth-trust">Private memories stay private. Shared work stays in your Kin workspace.</p>
+    </div>
+    <div class="auth-form-side">
+      <div class="auth-card">
+        <span class="auth-kicker">WELCOME BACK</span>
+        <h1 id="authTitle">Who’s signing in?</h1>
+        <p class="auth-subtitle">Choose your profile, then use your own email and password.</p>
+        <div class="login-people" role="radiogroup" aria-label="Choose profile">
+          <button type="button" class="login-person active" data-login-person="me" aria-pressed="true"><span class="avatar">A</span><span><strong>Aiman Firdaus</strong><small>Your workspace</small></span><i></i></button>
+          <button type="button" class="login-person" data-login-person="partner" aria-pressed="false"><span class="avatar second">A</span><span><strong>Abyadina Irisha</strong><small>Your workspace</small></span><i></i></button>
+        </div>
+        <form id="loginForm" class="login-form">
+          <label class="field"><span>Email address</span><input id="loginEmail" type="email" required autocomplete="email" placeholder="you@example.com"></label>
+          <label class="field"><span>Password</span><span class="password-field"><input id="loginPassword" type="password" required minlength="6" autocomplete="current-password" placeholder="Your password"><button type="button" id="toggleLoginPassword" aria-label="Show password">Show</button></span></label>
+          <div class="login-error hidden" id="loginError" role="alert"></div>
+          <button type="submit" class="primary-button login-submit"><span>Sign in as Aiman</span><svg viewBox="0 0 24 24"><path d="M5 12h14M14 7l5 5-5 5"/></svg></button>
+        </form>
+        <div class="login-divider"><span>New to Kin?</span></div>
+        <button type="button" class="secondary-button login-create" id="loginCreateAccount">Create an account</button>
+        <button type="button" class="text-button login-preview hidden" id="localPreviewBtn">Continue with a local preview</button>
+        <p class="login-footnote">The profile choice does not bypass security. Each person signs in with a separate Supabase account.</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="app-shell auth-locked" id="appShell">
     <aside class="sidebar" id="sidebar">
       <div class="brand-row">
         <button class="brand" data-view-target="home" aria-label="Go home">
@@ -100,7 +130,7 @@
         </div>
       </header>
       <div class="top-popover notification-popover hidden" id="notificationPopover"><div class="popover-head"><div><span class="modal-kicker">INBOX</span><h3>Notifications</h3></div><button class="text-button" id="markNotificationsRead">Mark all read</button></div><div class="notification-list" id="notificationList"></div></div>
-      <div class="top-popover account-popover hidden" id="accountPopover"><div class="account-summary"><span class="avatar" id="accountAvatar">A</span><div><strong id="accountName">Aiman Firdaus</strong><small id="accountEmail">Local preview</small></div></div><div class="account-menu"><button id="accountSettingsAction"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H3v-4h.2a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1a1.7 1.7 0 0 0 1.9.3 1.7 1.7 0 0 0 1-1.6V3h4v.2a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1z"/></svg>Workspace settings</button><button id="accountCloudAction"><svg viewBox="0 0 24 24"><path d="M6 19a4 4 0 1 1 1-7.9A6 6 0 0 1 18.7 9 5 5 0 0 1 19 19z"/></svg>Cloud & account</button><button id="accountActivityAction"><svg viewBox="0 0 24 24"><path d="M12 8v5l3 2"/><circle cx="12" cy="12" r="9"/></svg>Activity history</button></div><div class="account-sync"><span class="sync-live-dot"></span><span id="accountSyncStatus">Local mode</span></div></div>
+      <div class="top-popover account-popover hidden" id="accountPopover"><div class="account-summary"><span class="avatar" id="accountAvatar">A</span><div><strong id="accountName">Aiman Firdaus</strong><small id="accountEmail">Local preview</small></div></div><div class="account-menu"><button id="accountSettingsAction"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H3v-4h.2a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1a1.7 1.7 0 0 0 1.9.3 1.7 1.7 0 0 0 1-1.6V3h4v.2a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1z"/></svg>Workspace settings</button><button id="accountCloudAction"><svg viewBox="0 0 24 24"><path d="M6 19a4 4 0 1 1 1-7.9A6 6 0 0 1 18.7 9 5 5 0 0 1 19 19z"/></svg>Cloud & account</button><button id="accountActivityAction"><svg viewBox="0 0 24 24"><path d="M12 8v5l3 2"/><circle cx="12" cy="12" r="9"/></svg>Activity history</button><button id="accountSwitchAction"><svg viewBox="0 0 24 24"><path d="M8 7h11l-3-3M16 17H5l3 3M19 7l-3 3M5 17l3-3"/></svg>Switch account</button></div><div class="account-sync"><span class="sync-live-dot"></span><span id="accountSyncStatus">Local mode</span></div></div>
 
       <section class="view active" id="homeView" data-view="home">
         <div class="page-wrap home-page">
@@ -116,8 +146,8 @@
           </div>
 
           <section class="people-dashboard" aria-label="Shared dashboard">
-            <article class="person-overview person-one"><div class="person-overview-head"><span class="avatar" id="overviewAvatarOne">A</span><div><span class="tiny-label">PERSONAL SPACE</span><h3 id="overviewNameOne">Aiman Firdaus</h3></div><button class="text-button" data-person-tasks="me">View tasks</button></div><div class="person-metrics"><div><strong id="overviewTasksOne">0</strong><span>open tasks</span></div><div><strong id="overviewClassesOne">0</strong><span>classes today</span></div></div><div class="next-class" id="overviewNextOne">No classes scheduled today</div></article>
-            <article class="person-overview person-two"><div class="person-overview-head"><span class="avatar second" id="overviewAvatarTwo">A</span><div><span class="tiny-label">PERSONAL SPACE</span><h3 id="overviewNameTwo">Abyadina Irisha</h3></div><button class="text-button" data-person-tasks="partner">View tasks</button></div><div class="person-metrics"><div><strong id="overviewTasksTwo">0</strong><span>open tasks</span></div><div><strong id="overviewClassesTwo">0</strong><span>classes today</span></div></div><div class="next-class" id="overviewNextTwo">No classes scheduled today</div></article>
+            <article class="person-overview person-one"><div class="person-overview-head"><span class="avatar" id="overviewAvatarOne">A</span><div><span class="tiny-label">PERSONAL SPACE</span><h3 id="overviewNameOne">Aiman Firdaus</h3><span class="person-presence offline" id="presenceOne"><i></i>Offline</span></div><button class="text-button" data-person-tasks="me">View tasks</button></div><div class="person-metrics"><div><strong id="overviewTasksOne">0</strong><span>open tasks</span></div><div><strong id="overviewClassesOne">0</strong><span>classes today</span></div></div><div class="next-class" id="overviewNextOne">No classes scheduled today</div></article>
+            <article class="person-overview person-two"><div class="person-overview-head"><span class="avatar second" id="overviewAvatarTwo">A</span><div><span class="tiny-label">PERSONAL SPACE</span><h3 id="overviewNameTwo">Abyadina Irisha</h3><span class="person-presence offline" id="presenceTwo"><i></i>Offline</span></div><button class="text-button" data-person-tasks="partner">View tasks</button></div><div class="person-metrics"><div><strong id="overviewTasksTwo">0</strong><span>open tasks</span></div><div><strong id="overviewClassesTwo">0</strong><span>classes today</span></div></div><div class="next-class" id="overviewNextTwo">No classes scheduled today</div></article>
           </section>
 
           <div class="home-grid">

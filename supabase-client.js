@@ -7,6 +7,8 @@
   let session = null;
   let workspace = null;
   let channel = null;
+  let presenceChannel = null;
+  let presencePayload = null;
 
   const check = ({ data, error }) => { if (error) throw error; return data; };
   const taskToRow = (task) => ({ id: task.id, workspace_id: workspace.id, title: task.title, details: task.details || "", due_date: task.date, owner_key: task.owner, category: task.category, priority: task.priority, completed: task.completed, course_id: task.courseId || null, estimated_minutes: task.estimate || 60, created_at: task.createdAt });
@@ -58,8 +60,12 @@
 
   async function signOut() {
     if (channel) await client.removeChannel(channel);
-    check(await client.auth.signOut());
-    session = null; workspace = null; channel = null;
+    if (presenceChannel) {
+      try { await presenceChannel.untrack(); } catch (_) {}
+      await client.removeChannel(presenceChannel);
+    }
+    check(await client.auth.signOut({ scope: "local" }));
+    session = null; workspace = null; channel = null; presenceChannel = null; presencePayload = null;
     return status();
   }
 
@@ -117,6 +123,41 @@
       .subscribe();
   }
 
+  async function startPresence(view, onSync) {
+    if (!workspace || !session) return;
+    if (presenceChannel) await client.removeChannel(presenceChannel);
+    presencePayload = {
+      userId: session.user.id,
+      slot: workspace.currentMember.slot,
+      name: workspace.currentMember.displayName || (workspace.currentMember.slot === "me" ? workspace.name_one : workspace.name_two),
+      view: view || "home",
+      onlineAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    presenceChannel = client.channel(`kin-presence-${workspace.id}`, { config: { presence: { key: session.user.id } } });
+    presenceChannel.on("presence", { event: "sync" }, () => {
+      const members = Object.values(presenceChannel.presenceState()).flat().filter(Boolean);
+      onSync?.(members);
+    });
+    presenceChannel.subscribe(async (statusValue) => {
+      if (statusValue === "SUBSCRIBED") await presenceChannel.track(presencePayload);
+    });
+  }
+
+  async function updatePresence(view) {
+    if (!presenceChannel || !presencePayload) return;
+    presencePayload = { ...presencePayload, view: view || "home", updatedAt: new Date().toISOString() };
+    await presenceChannel.track(presencePayload);
+  }
+
+  async function stopPresence() {
+    if (!presenceChannel) return;
+    try { await presenceChannel.untrack(); } catch (_) {}
+    await client.removeChannel(presenceChannel);
+    presenceChannel = null;
+    presencePayload = null;
+  }
+
   async function askAI(question, context) {
     if (!client || !session) throw new Error("Sign in to use the cloud Brain");
     const { data, error } = await client.functions.invoke("brain", { body: { question, context } });
@@ -137,5 +178,5 @@
     return data.text;
   }
 
-  window.KinCloud = { configured, init, status, signIn, signUp, signOut, createWorkspace, joinWorkspace, loadState, syncState, remove, subscribe, askAI, ingestFile };
+  window.KinCloud = { configured, init, status, signIn, signUp, signOut, createWorkspace, joinWorkspace, loadState, syncState, remove, subscribe, startPresence, updatePresence, stopPresence, askAI, ingestFile };
 })();
