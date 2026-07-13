@@ -43,7 +43,9 @@
         { id: uid(), title: "How she likes her coffee", content: "Iced latte, less sweet, with oat milk when it is available. No whipped cream.", category: "personal", tags: ["little things", "coffee"], visibility: "shared", createdAt: new Date(Date.now() - 2 * DAY).toISOString(), updatedAt: new Date(Date.now() - 2 * DAY).toISOString() },
         { id: uid(), title: "ISP568 project direction", content: "Build a useful shared system with a calm interface. The main idea is a personal knowledge vault connected to daily tasks and an assistant.", category: "study", tags: ["project", "ai", "idea"], visibility: "private", createdAt: new Date(Date.now() - 4 * DAY).toISOString(), updatedAt: new Date(Date.now() - 4 * DAY).toISOString() }
       ],
-      timetables: []
+      timetables: [],
+      courses: [],
+      activities: []
     };
   }
 
@@ -54,6 +56,8 @@
       saved.profile = { ...PEOPLE };
       saved.notes = saved.notes.map((note) => ({ visibility: "shared", ...note }));
       saved.timetables ||= [];
+      saved.courses ||= [];
+      saved.activities ||= [];
       return saved;
     } catch (_) { return initialState(); }
   }
@@ -77,6 +81,11 @@
   }
 
   function saveState(message) {
+    if (message) {
+      state.activities ||= [];
+      state.activities.unshift({ id: uid(), actor: ownerLabel(currentSlot()), message, createdAt: new Date().toISOString() });
+      state.activities = state.activities.slice(0, 100);
+    }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     renderAll();
     scheduleCloudSync();
@@ -114,6 +123,9 @@
     renderTaskBoard();
     renderPlanner();
     renderTimetable();
+    renderCourses();
+    renderNotifications();
+    renderActivity();
     renderVault();
     renderGraph();
   }
@@ -128,6 +140,7 @@
     $$(".avatar.second").forEach((el) => el.textContent = state.profile.partner.charAt(0).toUpperCase());
     $("#taskNavCount").textContent = state.tasks.filter((task) => !task.completed).length;
     $("#vaultNavCount").textContent = state.notes.length;
+    $("#courseNavCount").textContent = state.courses.length;
     $("#overviewNameOne").textContent = state.profile.name;
     $("#overviewNameTwo").textContent = state.profile.partner;
     $("#scheduleKeyOne").textContent = state.profile.name;
@@ -140,6 +153,13 @@
     $("#taskOwner").options[1].textContent = state.profile.partner;
     $("#classOwner").options[0].textContent = state.profile.name;
     $("#classOwner").options[1].textContent = state.profile.partner;
+    $("#courseOwner").options[0].textContent = state.profile.name;
+    $("#courseOwner").options[1].textContent = state.profile.partner;
+    $("#accountName").textContent = ownerLabel(slot);
+    $("#accountEmail").textContent = cloudStatus.email || "Local preview";
+    $("#accountAvatar").textContent = ownerLabel(slot).charAt(0);
+    $("#accountSyncStatus").textContent = cloudStatus.workspace ? "Supabase live sync" : "Local mode";
+    renderCourseOptions();
     $("#identityLabel").textContent = cloudStatus.signedIn ? `${ownerLabel(slot)} · personal view` : "Shared preview";
     $("#myTaskFilter").textContent = `${ownerLabel(slot).split(" ")[0]}'s tasks`;
   }
@@ -232,6 +252,121 @@
       const items = state.timetables.filter((item) => item.day === day && (activeTimetableFilter === "all" || item.owner === activeTimetableFilter)).sort((a, b) => a.start.localeCompare(b.start));
       return `<section class="timetable-day ${day === todayDay ? "today" : ""}"><div class="timetable-day-head">${name}</div><div class="class-list">${items.length ? items.map((item) => `<button class="class-card ${item.owner} ${item.color}" data-class-id="${item.id}"><time>${escapeHtml(item.start)} – ${escapeHtml(item.end)}</time><strong>${escapeHtml(item.courseCode || item.title)}</strong>${item.courseCode ? `<span>${escapeHtml(item.title)}</span>` : ""}<small>${escapeHtml(ownerLabel(item.owner))}${item.location ? ` · ${escapeHtml(item.location)}` : ""}</small></button>`).join("") : `<div class="empty-day">No classes</div>`}</div></section>`;
     }).join("");
+  }
+
+  function renderCourseOptions() {
+    const select = $("#taskCourse");
+    const current = select.value;
+    select.innerHTML = `<option value="">No course</option>${state.courses.map((course) => `<option value="${course.id}">${escapeHtml(course.code)} — ${escapeHtml(course.title)}</option>`).join("")}`;
+    select.value = current;
+  }
+
+  function renderCourses() {
+    const courses = state.courses.filter((course) => course.owner === "both" || course.owner === currentSlot());
+    $("#courseGrid").innerHTML = courses.length ? courses.map((course) => {
+      const tasks = state.tasks.filter((task) => task.courseId === course.id);
+      const done = tasks.filter((task) => task.completed).length;
+      const progress = tasks.length ? Math.round(done / tasks.length * 100) : 0;
+      return `<button class="course-card ${course.color}" data-course-id="${course.id}"><span class="course-card-top"><span class="course-code">${escapeHtml(course.code)}</span><span class="owner-chip">${escapeHtml(ownerLabel(course.owner))}</span></span><h3>${escapeHtml(course.title)}</h3><p>${escapeHtml(course.lecturer || "No lecturer added")}</p><div class="course-progress"><div><span>${tasks.length} assignments</span><strong>${progress}% complete</strong></div><div class="progress-track"><span style="width:${progress}%"></span></div></div></button>`;
+    }).join("") : `<div class="empty-state"><span>◫</span><h3>No courses yet</h3><p>Add each course, then connect assignments and documents to it.</p></div>`;
+  }
+
+  function openCourse(course = null) {
+    $("#courseForm").reset();
+    $("#courseId").value = course?.id || "";
+    $("#courseCode").value = course?.code || "";
+    $("#courseTitle").value = course?.title || "";
+    $("#courseOwner").value = course?.owner || currentSlot();
+    $("#courseLecturer").value = course?.lecturer || "";
+    $("#courseColor").value = course?.color || "blue";
+    $("#courseCredits").value = course?.credits ?? 3;
+    $("#courseModalTitle").textContent = course ? "Edit this course" : "Add a course";
+    $("#deleteCourseBtn").classList.toggle("hidden", !course);
+    $("#courseModal").showModal();
+  }
+
+  function generateSmartPlan() {
+    const now = dateFromIso(today());
+    const tasks = state.tasks.filter((task) => !task.completed && [currentSlot(), "both"].includes(task.owner)).map((task) => {
+      const days = Math.round((dateFromIso(task.date) - now) / DAY);
+      const urgency = (task.priority === "high" ? 40 : task.priority === "low" ? 0 : 20) + Math.max(0, 35 - days * 5) + Math.min(25, Number(task.estimate || 60) / 20);
+      return { ...task, days, urgency };
+    }).sort((a, b) => b.urgency - a.urgency);
+    $("#smartPlanList").innerHTML = tasks.length ? tasks.slice(0, 6).map((task, index) => {
+      const course = state.courses.find((item) => item.id === task.courseId);
+      const when = task.days < 0 ? "Overdue — start now" : task.days <= 1 ? "Schedule today" : task.days <= 3 ? "Start within 24 hours" : `Begin by ${new Date(Date.now() + Math.max(1, task.days - 3) * DAY).toLocaleDateString(undefined, { month: "short", day: "numeric" })}`;
+      return `<div class="plan-item"><strong>${index + 1}. ${escapeHtml(task.title)}</strong><span>${escapeHtml(when)} · ${task.estimate || 60} min${course ? ` · ${escapeHtml(course.code)}` : ""}</span></div>`;
+    }).join("") : `<div class="plan-item"><strong>Your plan is clear</strong><span>Add assignments with deadlines to receive a workload plan.</span></div>`;
+    toast("Study plan rebuilt from your current workload.");
+  }
+
+  function getNotifications() {
+    const now = dateFromIso(today());
+    const list = [];
+    state.tasks.filter((task) => !task.completed && [currentSlot(), "both"].includes(task.owner)).forEach((task) => {
+      const days = Math.round((dateFromIso(task.date) - now) / DAY);
+      if (days < 0) list.push({ id: `task-${task.id}`, kind: "task", sourceId: task.id, title: "Assignment overdue", body: `${task.title} was due ${relativeDate(task.date).toLowerCase()}.`, at: task.date, level: 3 });
+      else if (days <= 2) list.push({ id: `task-${task.id}`, kind: "task", sourceId: task.id, title: days === 0 ? "Due today" : days === 1 ? "Due tomorrow" : "Due soon", body: task.title, at: task.date, level: days === 0 ? 3 : 2 });
+    });
+    const day = new Date().getDay() || 7;
+    state.timetables.filter((item) => item.owner === currentSlot() && item.day === day).forEach((item) => list.push({ id: `class-${item.id}`, kind: "class", sourceId: item.id, title: `${item.courseCode || item.title} today`, body: `${item.start}–${item.end}${item.location ? ` · ${item.location}` : ""}`, at: today(), level: 1 }));
+    return list.sort((a, b) => b.level - a.level);
+  }
+
+  function renderNotifications() {
+    const notifications = getNotifications();
+    const readAt = Number(localStorage.getItem("kin-notifications-read") || 0);
+    const unread = notifications.filter((item) => dateFromIso(item.at).getTime() >= readAt).length;
+    $(".notification-dot").style.display = unread ? "block" : "none";
+    $("#notificationList").innerHTML = notifications.length ? notifications.map((item) => `<button class="notification-item" data-notification-kind="${item.kind}" data-notification-source="${item.sourceId}"><span class="notification-symbol">${item.kind === "task" ? "✓" : "◷"}</span><span><strong>${escapeHtml(item.title)}</strong><span>${escapeHtml(item.body)}</span><small>${item.kind === "task" ? "Assignment" : "Timetable"}</small></span></button>`).join("") : `<div class="notification-empty">You’re all caught up. New deadlines and today’s classes will appear here.</div>`;
+  }
+
+  function renderActivity() {
+    const items = state.activities || [];
+    $("#activityList").innerHTML = items.length ? items.map((item) => `<div class="activity-row"><span class="assistant-avatar">${escapeHtml(item.actor?.charAt(0) || "K")}</span><span><strong>${escapeHtml(item.message)}</strong><span>${escapeHtml(item.actor || "Kin")}</span></span><time>${noteAge(item.createdAt)}</time></div>`).join("") : `<div class="empty-state"><span>◷</span><h3>No activity yet</h3><p>Changes made by either person will appear here.</p></div>`;
+  }
+
+  function parseIcs(text) {
+    const unfolded = text.replace(/\r?\n[ \t]/g, "");
+    const dayMap = { MO: 1, TU: 2, WE: 3, TH: 4, FR: 5, SA: 6, SU: 7 };
+    return [...unfolded.matchAll(/BEGIN:VEVENT([\s\S]*?)END:VEVENT/g)].map((match) => {
+      const body = match[1];
+      const value = (key) => body.match(new RegExp(`(?:^|\\n)${key}[^:]*:(.*)`, "i"))?.[1]?.trim() || "";
+      const startRaw = value("DTSTART"), endRaw = value("DTEND"), rule = value("RRULE");
+      const date = startRaw.slice(0, 8), time = startRaw.includes("T") ? startRaw.split("T")[1].slice(0, 4) : "0900";
+      const endTime = endRaw.includes("T") ? endRaw.split("T")[1].slice(0, 4) : "1000";
+      const jsDate = date ? new Date(`${date.slice(0,4)}-${date.slice(4,6)}-${date.slice(6,8)}T12:00:00`) : new Date();
+      const byDay = rule.match(/BYDAY=([A-Z]{2})/)?.[1];
+      return { id: uid(), owner: currentSlot(), courseCode: value("SUMMARY").split(/[-–:]/)[0].trim().slice(0,20), title: value("SUMMARY") || "Imported event", day: byDay ? dayMap[byDay] : (jsDate.getDay() || 7), start: `${time.slice(0,2)}:${time.slice(2,4)}`, end: `${endTime.slice(0,2)}:${endTime.slice(2,4)}`, location: value("LOCATION").replace(/\\,/g, ","), color: "blue", createdAt: new Date().toISOString() };
+    });
+  }
+
+  function exportIcs() {
+    const dayCodes = ["", "MO", "TU", "WE", "TH", "FR", "SA", "SU"];
+    const stamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+    const events = state.timetables.filter((item) => item.owner === currentSlot()).map((item) => `BEGIN:VEVENT\r\nUID:${item.id}@kin\r\nDTSTAMP:${stamp}\r\nDTSTART:20260713T${item.start.replace(":", "")}00\r\nDTEND:20260713T${item.end.replace(":", "")}00\r\nRRULE:FREQ=WEEKLY;BYDAY=${dayCodes[item.day]}\r\nSUMMARY:${(item.courseCode ? `${item.courseCode} - ` : "")}${item.title}\r\nLOCATION:${item.location || ""}\r\nEND:VEVENT`).join("\r\n");
+    downloadFile("kin-timetable.ics", `BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Kin//Timetable//EN\r\n${events}\r\nEND:VCALENDAR`, "text/calendar");
+    toast("Timetable exported for Google Calendar or Apple Calendar.");
+  }
+
+  async function importDocument(file) {
+    if (!file) return;
+    toast(`Extracting ${file.name}…`);
+    try {
+      let content = "";
+      if (file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")) {
+        if (!window.pdfjsLib) throw new Error("PDF reader is still loading. Try again in a moment.");
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";
+        const pdf = await window.pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
+        const pages = [];
+        for (let i = 1; i <= pdf.numPages; i++) { const page = await pdf.getPage(i); const text = await page.getTextContent(); pages.push(text.items.map((item) => item.str).join(" ")); }
+        content = pages.join("\n\n");
+      } else if (file.type.startsWith("text/") || /\.(md|csv)$/i.test(file.name)) content = await file.text();
+      else if (cloudStatus.workspace && window.KinCloud.ingestFile) content = await window.KinCloud.ingestFile(file);
+      else throw new Error("Image OCR and audio transcription need the Supabase AI function and OpenAI key. PDF and text imports already work locally.");
+      state.notes.push({ id: uid(), title: file.name.replace(/\.[^.]+$/, ""), content: content.slice(0, 200000), category: "study", tags: ["document", file.name.split(".").pop().toLowerCase()], visibility: "private", sourceName: file.name, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
+      saveState(`Imported ${file.name} into the private Brain.`);
+    } catch (error) { toast(error.message); }
   }
 
   function filteredNotes() {
@@ -371,6 +506,8 @@
     $("#taskCategory").value = task?.category || "personal";
     $("#taskPriority").value = task?.priority || "normal";
     $("#taskDetails").value = task?.details || "";
+    $("#taskCourse").value = task?.courseId || "";
+    $("#taskEstimate").value = String(task?.estimate || 60);
     $("#taskModalTitle").textContent = task ? "Edit this task" : "Add something to do";
     $("#deleteTaskBtn").classList.toggle("hidden", !task);
     $("#taskModal").showModal();
@@ -444,14 +581,25 @@
     return `I found ${sources.length} relevant ${sources.length === 1 ? "item" : "items"} in your shared brain:\n\n${sources.map((doc) => `• ${doc.title}: ${doc.text || doc.meta}`).join("\n")}\n\nThis is a local retrieval summary, so it only uses what you’ve saved here.`;
   }
 
-  function askBrain(question) {
+  async function askBrain(question) {
     const clean = question.trim();
     if (!clean) return;
     $("#brainModal").showModal();
     const stream = $("#chatStream");
     stream.insertAdjacentHTML("beforeend", `<div class="user-message"><p>${escapeHtml(clean)}</p></div>`);
-    const answer = answerFromBrain(clean);
-    stream.insertAdjacentHTML("beforeend", `<div class="assistant-message"><span class="assistant-avatar">✦</span><div><p>${escapeHtml(answer)}</p><small>Grounded in ${state.notes.length} memories and ${state.tasks.length} tasks</small></div></div>`);
+    const responseId = `brain-${uid()}`;
+    stream.insertAdjacentHTML("beforeend", `<div class="assistant-message" id="${responseId}"><span class="assistant-avatar">✦</span><div><p>Thinking across your accessible Brain…</p><small>Retrieving sources</small></div></div>`);
+    let answer = "", mode = "Local grounded retrieval";
+    if (cloudStatus.workspace && window.KinCloud.askAI) {
+      try {
+        const context = { person: ownerLabel(currentSlot()), tasks: state.tasks.filter((task) => [currentSlot(), "both"].includes(task.owner)).slice(0, 80), notes: state.notes.slice(0, 40).map((note) => ({ title: note.title, content: note.content.slice(0, 8000), tags: note.tags, visibility: note.visibility })), courses: state.courses.filter((course) => [currentSlot(), "both"].includes(course.owner)), timetable: state.timetables.filter((item) => item.owner === currentSlot()) };
+        answer = await window.KinCloud.askAI(clean, context);
+        mode = "OpenAI · grounded in your accessible sources";
+      } catch (error) { answer = answerFromBrain(clean); mode = `Local fallback · ${error.message}`; }
+    } else answer = answerFromBrain(clean);
+    const response = $(`#${responseId}`);
+    response.querySelector("p").textContent = answer;
+    response.querySelector("small").textContent = `${mode} · ${state.notes.length} memories`;
     stream.scrollTop = stream.scrollHeight;
     $("#chatInput").value = "";
   }
@@ -504,6 +652,8 @@
       state = remote;
       state.profile = { ...PEOPLE };
       state.timetables ||= [];
+      state.courses ||= [];
+      state.activities ||= [];
       state.notes = state.notes.map((note) => ({ visibility: "shared", ...note }));
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
       renderAll();
@@ -537,6 +687,7 @@
     if (action === "new-task") openTask();
     if (action === "new-note") openNote();
     if (action === "new-class") openTimetable();
+    if (action === "new-course") openCourse();
     if (action === "open-brain") $("#brainModal").showModal();
     const toggle = event.target.closest("[data-toggle-task]");
     if (toggle) { event.stopPropagation(); toggleTask(toggle.dataset.toggleTask); return; }
@@ -546,6 +697,8 @@
     if (noteEl) openNote(state.notes.find((note) => note.id === noteEl.dataset.noteId));
     const classEl = event.target.closest("[data-class-id]");
     if (classEl) openTimetable(state.timetables.find((item) => item.id === classEl.dataset.classId));
+    const courseEl = event.target.closest("[data-course-id]");
+    if (courseEl) openCourse(state.courses.find((item) => item.id === courseEl.dataset.courseId));
     const addDate = event.target.closest("[data-add-date]")?.dataset.addDate;
     if (addDate) openTask(null, addDate);
     const suggestion = event.target.closest("[data-prompt]")?.dataset.prompt;
@@ -571,12 +724,17 @@
       if (graphSource.dataset.graphSource === "memory") openNote(state.notes.find((note) => note.id === graphSource.dataset.sourceId));
       if (graphSource.dataset.graphSource === "task") openTask(state.tasks.find((task) => task.id === graphSource.dataset.sourceId));
     }
+    const notification = event.target.closest("[data-notification-kind]");
+    if (notification) {
+      $("#notificationPopover").classList.add("hidden");
+      notification.dataset.notificationKind === "task" ? openTask(state.tasks.find((task) => task.id === notification.dataset.notificationSource)) : openTimetable(state.timetables.find((item) => item.id === notification.dataset.notificationSource));
+    }
   });
 
   $("#taskForm").addEventListener("submit", (event) => {
     event.preventDefault();
     const id = $("#taskId").value;
-    const data = { title: $("#taskTitle").value.trim(), date: $("#taskDate").value, owner: $("#taskOwner").value, category: $("#taskCategory").value, priority: $("#taskPriority").value, details: $("#taskDetails").value.trim() };
+    const data = { title: $("#taskTitle").value.trim(), date: $("#taskDate").value, owner: $("#taskOwner").value, category: $("#taskCategory").value, priority: $("#taskPriority").value, details: $("#taskDetails").value.trim(), courseId: $("#taskCourse").value || null, estimate: Number($("#taskEstimate").value) };
     if (!data.title || !data.date) return;
     if (id) Object.assign(state.tasks.find((task) => task.id === id), data);
     else state.tasks.push({ id: uid(), ...data, completed: false, createdAt: new Date().toISOString() });
@@ -607,9 +765,20 @@
     saveState(id ? "Class updated." : `Class added to ${ownerLabel(data.owner)}'s timetable.`);
   });
 
+  $("#courseForm").addEventListener("submit", (event) => {
+    event.preventDefault();
+    const id = $("#courseId").value;
+    const data = { code: $("#courseCode").value.trim().toUpperCase(), title: $("#courseTitle").value.trim(), owner: $("#courseOwner").value, lecturer: $("#courseLecturer").value.trim(), color: $("#courseColor").value, credits: Number($("#courseCredits").value || 0) };
+    if (!data.code || !data.title) return;
+    if (id) Object.assign(state.courses.find((course) => course.id === id), data);
+    else state.courses.push({ id: uid(), ...data, createdAt: new Date().toISOString() });
+    $("#courseModal").close(); saveState(id ? `Updated ${data.code}.` : `Added course ${data.code}.`);
+  });
+
   $("#deleteTaskBtn").addEventListener("click", () => { const id = $("#taskId").value; if (cloudStatus.workspace) window.KinCloud.remove("tasks", id).catch((error) => toast(error.message)); state.tasks = state.tasks.filter((task) => task.id !== id); $("#taskModal").close(); saveState("Task deleted."); });
   $("#deleteNoteBtn").addEventListener("click", () => { const id = $("#noteId").value; if (cloudStatus.workspace) window.KinCloud.remove("notes", id).catch((error) => toast(error.message)); state.notes = state.notes.filter((note) => note.id !== id); $("#noteModal").close(); saveState("Memory removed from the vault."); });
   $("#deleteClassBtn").addEventListener("click", () => { const id = $("#timetableId").value; if (cloudStatus.workspace) window.KinCloud.remove("timetables", id).catch((error) => toast(error.message)); state.timetables = state.timetables.filter((item) => item.id !== id); $("#timetableModal").close(); saveState("Class removed from the timetable."); });
+  $("#deleteCourseBtn").addEventListener("click", () => { const id = $("#courseId").value; if (cloudStatus.workspace) window.KinCloud.remove("courses", id).catch((error) => toast(error.message)); state.courses = state.courses.filter((course) => course.id !== id); state.tasks.forEach((task) => { if (task.courseId === id) task.courseId = null; }); $("#courseModal").close(); saveState("Course removed; its tasks were kept."); });
   $("#taskSearch").addEventListener("input", renderTaskBoard);
   $("#vaultSearch").addEventListener("input", renderVault);
   $("#globalSearch").addEventListener("input", renderGlobalSearch);
@@ -618,6 +787,19 @@
   $("#exportGraphSvg").addEventListener("click", exportGraphSvg);
   $("#graphZoomIn").addEventListener("click", () => { graphZoom = Math.min(1.5, graphZoom + .1); $("#knowledgeGraph").style.transform = `scale(${graphZoom})`; $("#graphZoomLabel").textContent = `${Math.round(graphZoom * 100)}%`; });
   $("#graphZoomOut").addEventListener("click", () => { graphZoom = Math.max(.6, graphZoom - .1); $("#knowledgeGraph").style.transform = `scale(${graphZoom})`; $("#graphZoomLabel").textContent = `${Math.round(graphZoom * 100)}%`; });
+  $("#generatePlanBtn").addEventListener("click", generateSmartPlan);
+  $("#notificationButton").addEventListener("click", (event) => { event.stopPropagation(); $("#accountPopover").classList.add("hidden"); $("#notificationPopover").classList.toggle("hidden"); renderNotifications(); });
+  $("#accountButton").addEventListener("click", (event) => { event.stopPropagation(); $("#notificationPopover").classList.add("hidden"); $("#accountPopover").classList.toggle("hidden"); renderHeader(); });
+  $("#markNotificationsRead").addEventListener("click", () => { localStorage.setItem("kin-notifications-read", String(Date.now())); renderNotifications(); toast("Notifications marked as read."); });
+  $("#accountSettingsAction").addEventListener("click", () => { $("#accountPopover").classList.add("hidden"); $("#settingsName").value = state.profile.name; $("#settingsPartner").value = state.profile.partner; $("#settingsModal").showModal(); });
+  $("#accountCloudAction").addEventListener("click", () => { $("#accountPopover").classList.add("hidden"); cloudError(); updateCloudUI(); $("#cloudModal").showModal(); });
+  $("#accountActivityAction").addEventListener("click", () => { $("#accountPopover").classList.add("hidden"); renderActivity(); $("#activityModal").showModal(); });
+  $("#activityClose").addEventListener("click", () => $("#activityModal").close());
+  $("#importCalendarBtn").addEventListener("click", () => $("#calendarFileInput").click());
+  $("#exportCalendarBtn").addEventListener("click", exportIcs);
+  $("#calendarFileInput").addEventListener("change", async (event) => { const file = event.target.files[0]; if (!file) return; const items = parseIcs(await file.text()); state.timetables.push(...items); event.target.value = ""; saveState(`Imported ${items.length} calendar events.`); });
+  $("#documentUploadBtn").addEventListener("click", () => $("#documentFileInput").click());
+  $("#documentFileInput").addEventListener("change", async (event) => { await importDocument(event.target.files[0]); event.target.value = ""; });
   $("#searchTrigger").addEventListener("click", openGlobalSearch);
   $("#searchClose").addEventListener("click", () => $("#searchModal").close());
   $("#brainClose").addEventListener("click", () => $("#brainModal").close());
@@ -675,6 +857,11 @@
     try { await navigator.clipboard.writeText(code); toast("Invite code copied."); } catch (_) { window.prompt("Copy this invite code:", code); }
   });
 
+  document.addEventListener("click", (event) => {
+    if (!event.target.closest("#notificationPopover") && !event.target.closest("#notificationButton")) $("#notificationPopover").classList.add("hidden");
+    if (!event.target.closest("#accountPopover") && !event.target.closest("#accountButton")) $("#accountPopover").classList.add("hidden");
+  });
+
   document.addEventListener("keydown", (event) => {
     if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") { event.preventDefault(); openGlobalSearch(); }
     if (!event.metaKey && !event.ctrlKey && event.key.toLowerCase() === "n" && !["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement.tagName)) { event.preventDefault(); openNote(); }
@@ -683,6 +870,6 @@
   $$("dialog").forEach((dialog) => dialog.addEventListener("click", (event) => { if (event.target === dialog) dialog.close(); }));
   renderAll();
   const initialView = location.hash.slice(1);
-  if (["home", "tasks", "week", "timetable", "vault", "graph"].includes(initialView)) navigate(initialView);
+  if (["home", "tasks", "courses", "week", "timetable", "vault", "graph"].includes(initialView)) navigate(initialView);
   initCloud();
 })();

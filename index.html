@@ -35,6 +35,10 @@
           <svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="m8 12 2.5 2.5L16 9"/></svg>
           <span>Tasks</span><span class="nav-count" id="taskNavCount">0</span>
         </button>
+        <button class="nav-item" data-view-target="courses">
+          <svg viewBox="0 0 24 24"><path d="m3 8 9-5 9 5-9 5zM6 10v6c3 3 9 3 12 0v-6M21 9v7"/></svg>
+          <span>Courses</span><span class="nav-count" id="courseNavCount">0</span>
+        </button>
         <button class="nav-item" data-view-target="week">
           <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>
           <span>This week</span>
@@ -88,13 +92,15 @@
             <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
             <span>Search anything</span><kbd>⌘ K</kbd>
           </button>
-          <button class="icon-button notification-button" aria-label="Notifications">
+          <button class="icon-button notification-button" id="notificationButton" aria-label="Notifications">
             <svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg>
             <span class="notification-dot"></span>
           </button>
-          <div class="avatar-stack" aria-label="Workspace members"><span class="avatar mini">M</span><span class="avatar mini second">A</span></div>
+          <button class="avatar-stack account-trigger" id="accountButton" aria-label="Open account menu"><span class="avatar mini">M</span><span class="avatar mini second">A</span></button>
         </div>
       </header>
+      <div class="top-popover notification-popover hidden" id="notificationPopover"><div class="popover-head"><div><span class="modal-kicker">INBOX</span><h3>Notifications</h3></div><button class="text-button" id="markNotificationsRead">Mark all read</button></div><div class="notification-list" id="notificationList"></div></div>
+      <div class="top-popover account-popover hidden" id="accountPopover"><div class="account-summary"><span class="avatar" id="accountAvatar">A</span><div><strong id="accountName">Aiman Firdaus</strong><small id="accountEmail">Local preview</small></div></div><div class="account-menu"><button id="accountSettingsAction"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H3v-4h.2a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1a1.7 1.7 0 0 0 1.9.3 1.7 1.7 0 0 0 1-1.6V3h4v.2a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1z"/></svg>Workspace settings</button><button id="accountCloudAction"><svg viewBox="0 0 24 24"><path d="M6 19a4 4 0 1 1 1-7.9A6 6 0 0 1 18.7 9 5 5 0 0 1 19 19z"/></svg>Cloud & account</button><button id="accountActivityAction"><svg viewBox="0 0 24 24"><path d="M12 8v5l3 2"/><circle cx="12" cy="12" r="9"/></svg>Activity history</button></div><div class="account-sync"><span class="sync-live-dot"></span><span id="accountSyncStatus">Local mode</span></div></div>
 
       <section class="view active" id="homeView" data-view="home">
         <div class="page-wrap home-page">
@@ -173,6 +179,13 @@
         </div>
       </section>
 
+      <section class="view" id="coursesView" data-view="courses">
+        <div class="page-wrap">
+          <div class="page-title-row"><div><p class="eyebrow">COURSES, ASSIGNMENTS, AND WORKLOAD</p><h1>Course hub</h1><p class="subhead">Connect every task, document, and class to the course it belongs to.</p></div><button class="primary-button" data-action="new-course"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Add course</button></div>
+          <div class="course-layout"><div class="course-grid" id="courseGrid"></div><aside class="smart-plan-panel"><span class="insight-mark">✦</span><h3>Smart study plan</h3><p>Kin ranks upcoming work using deadlines, priority, and estimated effort.</p><button class="primary-button full" id="generatePlanBtn">Generate my plan</button><div class="smart-plan-list" id="smartPlanList"></div></aside></div>
+        </div>
+      </section>
+
       <section class="view" id="weekView" data-view="week">
         <div class="page-wrap wide-page">
           <div class="page-title-row"><div><p class="eyebrow">A GENTLE VIEW OF THE DAYS AHEAD</p><h1>This week</h1><p class="subhead" id="weekDateRange">Plan together without overplanning.</p></div><button class="primary-button" data-action="new-task"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Add to week</button></div>
@@ -182,7 +195,7 @@
 
       <section class="view" id="timetableView" data-view="timetable">
         <div class="page-wrap wide-page">
-          <div class="page-title-row"><div><p class="eyebrow">TWO SCHEDULES, ONE SHARED VIEW</p><h1>Timetables</h1><p class="subhead">See where both of you need to be without mixing up your courses.</p></div><button class="primary-button" data-action="new-class"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Add class</button></div>
+          <div class="page-title-row"><div><p class="eyebrow">TWO SCHEDULES, ONE SHARED VIEW</p><h1>Timetables</h1><p class="subhead">See where both of you need to be without mixing up your courses.</p></div><div class="page-actions"><button class="secondary-button" id="importCalendarBtn">Import .ics</button><button class="secondary-button" id="exportCalendarBtn">Export .ics</button><button class="primary-button" data-action="new-class"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Add class</button><input class="hidden" type="file" id="calendarFileInput" accept=".ics,text/calendar"></div></div>
           <div class="timetable-toolbar"><div class="segmented" id="timetableFilters"><button class="active" data-timetable-filter="all">Both</button><button data-timetable-filter="me" id="timetablePersonOne">Aiman</button><button data-timetable-filter="partner" id="timetablePersonTwo">Abyadina</button></div><div class="schedule-key"><span><i class="schedule-dot one"></i><span id="scheduleKeyOne">Aiman Firdaus</span></span><span><i class="schedule-dot two"></i><span id="scheduleKeyTwo">Abyadina Irisha</span></span></div></div>
           <div class="timetable-grid" id="timetableGrid"></div>
         </div>
@@ -190,7 +203,7 @@
 
       <section class="view" id="vaultView" data-view="vault">
         <div class="page-wrap">
-          <div class="page-title-row"><div><p class="eyebrow">YOUR SHARED MEMORY</p><h1>The vault</h1><p class="subhead">Notes, ideas, decisions, and the little things worth keeping.</p></div><button class="primary-button" data-action="new-note"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>New note</button></div>
+          <div class="page-title-row"><div><p class="eyebrow">YOUR SHARED MEMORY</p><h1>The vault</h1><p class="subhead">Notes, ideas, decisions, files, and the little things worth keeping.</p></div><div class="page-actions"><button class="secondary-button" id="documentUploadBtn"><svg viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></svg>Import document</button><button class="primary-button" data-action="new-note"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>New note</button><input class="hidden" type="file" id="documentFileInput" accept=".pdf,.txt,.md,.csv,image/*,audio/*"></div></div>
           <div class="vault-toolbar"><label class="vault-search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input id="vaultSearch" placeholder="Search everything you’ve saved..."></label><div class="segmented" id="vaultFilters"><button class="active" data-vault-filter="all">All</button><button data-vault-filter="private">My private brain</button><button data-vault-filter="shared">Shared brain</button><button data-vault-filter="study">Study</button><button data-vault-filter="plans">Plans</button></div></div>
           <div class="vault-layout"><div class="notes-grid" id="notesGrid"></div><aside class="vault-insights"><span class="insight-mark">✦</span><h3>Your brain is growing</h3><p id="brainStats">0 memories indexed and ready to help.</p><div class="insight-rule"></div><span class="tiny-label">CONNECTED IDEAS</span><div id="tagCloud" class="tag-cloud"></div><button class="secondary-button full" data-action="open-brain">Ask your brain</button></aside></div>
         </div>
@@ -218,6 +231,7 @@
         <label class="field"><span>When</span><input id="taskDate" type="date" required></label>
         <label class="field"><span>For</span><select id="taskOwner"><option value="me">Me</option><option value="partner">My person</option><option value="both">Both of us</option></select></label>
       </div>
+      <div class="field-row"><label class="field"><span>Course <em>optional</em></span><select id="taskCourse"><option value="">No course</option></select></label><label class="field"><span>Estimated effort</span><select id="taskEstimate"><option value="30">30 minutes</option><option value="60" selected>1 hour</option><option value="120">2 hours</option><option value="240">4 hours</option><option value="480">1 day</option></select></label></div>
       <div class="field-row">
         <label class="field"><span>Area</span><select id="taskCategory"><option value="personal">Personal</option><option value="study">Study</option><option value="plans">Plans</option><option value="home">Home</option></select></label>
         <label class="field"><span>Priority</span><select id="taskPriority"><option value="normal">Normal</option><option value="high">High</option><option value="low">Low</option></select></label>
@@ -226,6 +240,12 @@
       <div class="modal-actions"><button type="button" class="danger-button hidden" id="deleteTaskBtn">Delete</button><span></span><button value="cancel" class="ghost-button">Cancel</button><button type="submit" class="primary-button">Save task</button></div>
     </form>
   </dialog>
+
+  <dialog class="modal" id="courseModal">
+    <form method="dialog" class="modal-panel" id="courseForm"><div class="modal-header"><div><span class="modal-kicker">COURSE</span><h2 id="courseModalTitle">Add a course</h2></div><button class="icon-button modal-close" value="cancel" aria-label="Close"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div><input type="hidden" id="courseId"><div class="field-row"><label class="field"><span>Course code</span><input id="courseCode" required maxlength="20" placeholder="e.g. ISP568"></label><label class="field"><span>Course name</span><input id="courseTitle" required maxlength="100" placeholder="Course title"></label></div><div class="field-row"><label class="field"><span>Student</span><select id="courseOwner"><option value="me">Aiman Firdaus</option><option value="partner">Abyadina Irisha</option><option value="both">Both</option></select></label><label class="field"><span>Lecturer</span><input id="courseLecturer" maxlength="80" placeholder="Lecturer name"></label></div><div class="field-row"><label class="field"><span>Colour</span><select id="courseColor"><option value="blue">Blue</option><option value="coral">Coral</option><option value="sage">Sage</option><option value="gold">Gold</option><option value="violet">Violet</option></select></label><label class="field"><span>Credits</span><input id="courseCredits" type="number" min="0" max="20" value="3"></label></div><div class="modal-actions"><button type="button" class="danger-button hidden" id="deleteCourseBtn">Delete</button><span></span><button value="cancel" class="ghost-button">Cancel</button><button type="submit" class="primary-button">Save course</button></div></form>
+  </dialog>
+
+  <dialog class="modal" id="activityModal"><div class="modal-panel"><div class="modal-header"><div><span class="modal-kicker">AUDIT TRAIL</span><h2>Activity history</h2></div><button class="icon-button modal-close" id="activityClose"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div><div class="activity-list" id="activityList"></div></div></dialog>
 
   <dialog class="modal" id="noteModal">
     <form method="dialog" class="modal-panel note-panel" id="noteForm">
@@ -256,10 +276,10 @@
 
   <dialog class="modal brain-dialog" id="brainModal">
     <div class="brain-panel">
-      <div class="brain-modal-top"><div><span class="status-pill"><i></i> Searching your shared brain</span><h2>Ask Kin</h2></div><button class="icon-button brain-close" id="brainClose" aria-label="Close"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>
+      <div class="brain-modal-top"><div><span class="status-pill"><i></i> Searching your accessible Brain</span><h2>Ask Kin</h2></div><button class="icon-button brain-close" id="brainClose" aria-label="Close"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>
       <div class="chat-stream" id="chatStream"><div class="assistant-message"><span class="assistant-avatar">✦</span><div><p>I can use everything in your tasks and vault to help you remember, plan, and connect ideas.</p><small>Try asking “What should we focus on this week?”</small></div></div></div>
       <form class="chat-form" id="chatForm"><textarea id="chatInput" rows="1" placeholder="Ask about your plans, tasks, or memories..."></textarea><button aria-label="Send"><svg viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></svg></button></form>
-      <p class="privacy-note"><svg viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>Your local brain stays in this browser on this prototype.</p>
+      <p class="privacy-note"><svg viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>Only memories accessible to the signed-in person are used.</p>
     </div>
   </dialog>
 
@@ -309,6 +329,7 @@
 
   <div class="toast-region" id="toastRegion" aria-live="polite"></div>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
   <script src="supabase-config.js"></script>
   <script src="supabase-client.js"></script>
   <script src="app.js"></script>

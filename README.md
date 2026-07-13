@@ -44,6 +44,42 @@ If the original Kin schema was already run, open Supabase **SQL Editor**, paste 
 
 After the migration succeeds, refresh the deployed Render site. The account that originally created the workspace is assigned to Aiman's interface; the account that joins with the invite code is assigned to Abyadina's interface. Existing notes remain shared unless changed to private.
 
+## V3 advanced upgrade
+
+After `v2_two_people.sql`, run the entire `supabase/v3_advanced.sql` file once in Supabase SQL Editor. V3 adds:
+
+- Course records and assignment-to-course links
+- Estimated effort and smart workload ranking
+- Shared activity history
+- Document source metadata
+- Realtime course and activity updates
+- Clickable account and notification menus
+- `.ics` timetable import/export for Google Calendar, Apple Calendar, and Outlook
+- Local PDF/text extraction plus protected image OCR and audio transcription endpoints
+
+### Activate the real AI Brain and media extraction
+
+The public website never receives the OpenAI API key. The key belongs in Supabase Edge Function secrets.
+
+1. Install and sign in to the Supabase CLI.
+2. Link this repository to the existing Supabase project.
+3. Store the secret and deploy both functions:
+
+```powershell
+supabase link --project-ref YOUR_PROJECT_REFERENCE
+supabase secrets set OPENAI_API_KEY=YOUR_OPENAI_API_KEY
+supabase functions deploy brain
+supabase functions deploy ingest
+```
+
+The function source lives in `supabase/functions/brain/index.ts` and `supabase/functions/ingest/index.ts`. The Brain uses the OpenAI Responses API with only the notes, tasks, courses, and timetable rows already accessible to the signed-in person. If the function or key is unavailable, Kin automatically falls back to its local grounded retrieval instead of breaking chat.
+
+Image uploads use the protected ingestion function for OCR and factual summarization. Audio uploads use protected transcription. PDFs, Markdown, CSV, and text files are extracted in the browser and saved as private Brain memories by default.
+
+### Calendar workflow
+
+Use **Timetables → Import .ics** to read recurring calendar events into the signed-in person's timetable. Use **Export .ics** to create a calendar file that can be imported into Google Calendar. Live two-way Google Calendar synchronization would additionally require a Google Cloud OAuth client; no Google secret is placed in the static website.
+
 ## Connect Supabase
 
 No plugin or local package installation is required. The Supabase browser client is loaded from a pinned CDN version.
