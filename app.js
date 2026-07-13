@@ -121,8 +121,9 @@
   function renderHeader() {
     const now = new Date();
     $("#todayLabel").textContent = now.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" }).toUpperCase();
-    $("#welcomeName").textContent = state.profile.name;
-    $("#profileName").textContent = state.profile.name;
+    const slot = currentSlot();
+    $("#welcomeName").textContent = ownerLabel(slot);
+    $("#profileName").textContent = ownerLabel(slot);
     $$(".avatar:not(.second)").forEach((el) => el.textContent = state.profile.name.charAt(0).toUpperCase());
     $$(".avatar.second").forEach((el) => el.textContent = state.profile.partner.charAt(0).toUpperCase());
     $("#taskNavCount").textContent = state.tasks.filter((task) => !task.completed).length;
@@ -139,7 +140,6 @@
     $("#taskOwner").options[1].textContent = state.profile.partner;
     $("#classOwner").options[0].textContent = state.profile.name;
     $("#classOwner").options[1].textContent = state.profile.partner;
-    const slot = currentSlot();
     $("#identityLabel").textContent = cloudStatus.signedIn ? `${ownerLabel(slot)} · personal view` : "Shared preview";
     $("#myTaskFilter").textContent = `${ownerLabel(slot).split(" ")[0]}'s tasks`;
   }
@@ -168,7 +168,7 @@
   }
 
   function renderFocus() {
-    const tasks = state.tasks.filter((task) => task.date === today() && !task.completed).slice(0, 4);
+    const tasks = state.tasks.filter((task) => task.date === today() && !task.completed && [currentSlot(), "both"].includes(task.owner)).slice(0, 4);
     $("#focusList").innerHTML = tasks.length ? tasks.map((task) => taskRow(task)).join("") : `<div class="empty-inline"><strong>Your day is clear.</strong>Add one meaningful thing when you’re ready.</div>`;
   }
 
@@ -424,7 +424,7 @@
     const words = tokenize(question);
     const documents = [
       ...state.notes.map((note) => ({ type: "memory", title: note.title, text: note.content, meta: note.tags.join(", "), date: note.updatedAt })),
-      ...state.tasks.map((task) => ({ type: "task", title: task.title, text: task.details, meta: `${task.category} ${ownerLabel(task.owner)} ${task.completed ? "completed" : "unfinished"}`, date: task.date, completed: task.completed }))
+      ...state.tasks.filter((task) => [currentSlot(), "both"].includes(task.owner)).map((task) => ({ type: "task", title: task.title, text: task.details, meta: `${task.category} ${ownerLabel(task.owner)} ${task.completed ? "completed" : "unfinished"}`, date: task.date, completed: task.completed }))
     ];
     const scored = documents.map((doc) => {
       const haystack = tokenize(`${doc.title} ${doc.text} ${doc.meta}`);
@@ -438,8 +438,8 @@
     if (!sources.length && unfinishedIntent) sources = documents.filter((doc) => doc.type === "task" && !doc.completed).slice(0, 5);
     if (!sources.length) return "I couldn’t find a close match in your shared space yet. Try mentioning a person, project, tag, or saved idea—or add more detail to the vault first.";
     if (planIntent) {
-      const open = state.tasks.filter((task) => !task.completed).sort((a, b) => (a.priority === "high" ? -1 : 1) || a.date.localeCompare(b.date)).slice(0, 4);
-      if (open.length) return `Based on what you’ve saved, I’d focus on:\n\n${open.map((task, i) => `${i + 1}. ${task.title} — ${relativeDate(task.date)}, for ${ownerLabel(task.owner)}`).join("\n")}\n\nI found ${state.tasks.filter((task) => !task.completed).length} unfinished tasks overall. This answer is generated locally from your workspace.`;
+      const open = state.tasks.filter((task) => !task.completed && [currentSlot(), "both"].includes(task.owner)).sort((a, b) => (a.priority === "high" ? -1 : 1) || a.date.localeCompare(b.date)).slice(0, 4);
+      if (open.length) return `Based on ${ownerLabel(currentSlot())}'s tasks and accessible memories, I’d focus on:\n\n${open.map((task, i) => `${i + 1}. ${task.title} — ${relativeDate(task.date)}, for ${ownerLabel(task.owner)}`).join("\n")}\n\nI found ${state.tasks.filter((task) => !task.completed && [currentSlot(), "both"].includes(task.owner)).length} unfinished personal or shared tasks. This answer is generated locally from your accessible workspace.`;
     }
     return `I found ${sources.length} relevant ${sources.length === 1 ? "item" : "items"} in your shared brain:\n\n${sources.map((doc) => `• ${doc.title}: ${doc.text || doc.meta}`).join("\n")}\n\nThis is a local retrieval summary, so it only uses what you’ve saved here.`;
   }
