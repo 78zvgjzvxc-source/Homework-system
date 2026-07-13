@@ -1,6 +1,6 @@
-# HoneyButter — shared tasks and second brain
+# HoneyButter — shared study workspace and second brain
 
-HoneyButter is a local-first prototype for a private shared workspace. It combines daily and weekly task planning with a searchable knowledge vault and a retrieval-based “Brain” chat.
+HoneyButter is a private two-person study workspace. It combines tasks, timetables, focus sessions, editable file research, a searchable knowledge vault, and a retrieval-based “Brain” chat.
 
 ## Run it
 
@@ -34,6 +34,12 @@ The website automatically uses local storage until Supabase is configured. Once 
 - A combined dashboard showing both workloads and today's classes
 - Separate weekly timetables with a shared comparison view
 - Private personal-Brain memories protected by RLS, plus shared-Brain memories
+- A living dashboard with both schedules, shared free-time detection, and daily mood/availability check-ins
+- A synchronized Focus Room with partner presence, timer presets, and weekly focus history
+- A three-pane File Studio for PDF, DOCX, PPTX, XLSX, text, Markdown, and source-code files
+- Saved extracted content, editable working copies, passage highlights, file visibility, original downloads, and file-grounded Brain questions
+- Dark mode, command suggestions, timetable drag-and-drop, graph filters, and browser alerts while the site is open
+- Semantic memory retrieval with `pgvector` and protected OpenAI embeddings
 
 ## Signing in and switching people
 
@@ -84,6 +90,30 @@ The function source lives in `supabase/functions/brain/index.ts` and `supabase/f
 
 Image uploads use the protected ingestion function for OCR and factual summarization. Audio uploads use protected transcription. PDFs, Markdown, CSV, and text files are extracted in the browser and saved as private Brain memories by default.
 
+## V4 Studio upgrade
+
+After V3, run the entire `supabase/v4_studio.sql` file once in Supabase SQL Editor. V4 adds the File Studio, private file storage, highlights, focus history, daily check-ins, and semantic memory embeddings. Existing tasks, notes, courses, and accounts are preserved.
+
+Then deploy the updated document-ingestion function and the new embedding function:
+
+```powershell
+supabase functions deploy ingest
+supabase functions deploy embed
+```
+
+Both functions use the existing `OPENAI_API_KEY` Supabase secret. The website never receives that secret. After the SQL and functions finish deploying, refresh the Render website; Render will automatically publish the frontend after this repository is pushed.
+
+### How File Studio editing works
+
+- Text, Markdown, JSON, HTML, CSS, JavaScript, TypeScript, Python, SQL, and similar files open directly in the editable code/text view.
+- PDF text is extracted page by page, DOCX text is extracted with Mammoth, PPTX slide text is read from the package, and XLS/XLSX sheets are presented as tables.
+- The uploaded original is kept unchanged in private Supabase Storage. HoneyButter separately saves the extracted text, edited working copy, highlights, notes, and sharing choice. Both people can edit the working text of a shared file; private files remain owner-only.
+- **Download original** returns the uploaded binary. A locally-created text file downloads the editable copy.
+
+HoneyButter does not rewrite a native DOCX, PPTX, XLSX, or PDF binary after an edit. True Microsoft Office-style binary editing and re-export would require a document server such as ONLYOFFICE or Collabora. The current design is safer for study work: it preserves the original while letting both people inspect, search, highlight, annotate, and edit the extracted content.
+
+Workspace files may be up to 50 MB. Files that require server-side AI extraction are currently limited to 8 MB per request; client-readable PDF/Office/text files can still be stored up to the workspace limit.
+
 ### Calendar workflow
 
 Use **Timetables → Import .ics** to read recurring calendar events into the signed-in person's timetable. Use **Export .ics** to create a calendar file that can be imported into Google Calendar. Live two-way Google Calendar synchronization would additionally require a Google Cloud OAuth client; no Google secret is placed in the static website.
@@ -130,7 +160,7 @@ Open **Knowledge graph** in the sidebar. HoneyButter creates nodes for:
 
 Select a node to inspect its relationships or open its source. Search highlights a connected subgraph. **Export JSON** produces machine-readable nodes and edges for Graphology, Neo4j, Gephi, or another graph system. **Export SVG** produces a portable visual.
 
-The current graph uses explicit tags and categories, which makes every connection explainable. A more advanced version can add semantic connections by embedding each note and linking notes whose cosine similarity exceeds a chosen threshold.
+The graph uses explicit tags and categories so its connections remain explainable, and V4 adds file nodes plus semantic note retrieval through `pgvector`. A later graph pass can draw semantic note-to-note edges above a chosen cosine-similarity threshold.
 
 ## Upgrade the Brain
 

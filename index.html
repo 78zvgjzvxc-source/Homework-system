@@ -10,6 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="v4.css">
 </head>
 <body>
   <section class="auth-gate" id="authGate" aria-labelledby="authTitle">
@@ -77,9 +78,17 @@
           <svg viewBox="0 0 24 24"><path d="M4 5h16v15H4zM4 10h16M9 5v15M15 5v15"/></svg>
           <span>Timetables</span>
         </button>
+        <button class="nav-item" data-view-target="focus">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2M4 4l3 3M20 4l-3 3"/></svg>
+          <span>Focus room</span><span class="live-nav-dot hidden" id="focusNavDot"></span>
+        </button>
         <button class="nav-item" data-view-target="vault">
           <svg viewBox="0 0 24 24"><path d="M5 4h13a2 2 0 0 1 2 2v14H7a3 3 0 0 1-3-3V5a1 1 0 0 1 1-1Z"/><path d="M7 16h13M9 8h7"/></svg>
           <span>Vault</span><span class="nav-count" id="vaultNavCount">0</span>
+        </button>
+        <button class="nav-item" data-view-target="files">
+          <svg viewBox="0 0 24 24"><path d="M4 4h6l2 3h8v13H4z"/><path d="M8 12h8M8 16h5"/></svg>
+          <span>File studio</span><span class="nav-count" id="fileNavCount">0</span>
         </button>
         <button class="nav-item" data-view-target="graph">
           <svg viewBox="0 0 24 24"><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="m8.3 10.9 7.4-3.8M8.3 13.1l7.4 3.8M18 8.5v7"/></svg>
@@ -120,8 +129,9 @@
           <div class="identity-pill" id="identityPill"><span class="identity-dot"></span><span id="identityLabel">Shared view</span></div>
           <button class="search-trigger" id="searchTrigger">
             <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
-            <span>Search anything</span><kbd>⌘ K</kbd>
+            <span>Search or run a command</span><kbd>⌘ K</kbd>
           </button>
+          <button class="icon-button theme-button" id="themeButton" aria-label="Toggle dark mode"><svg viewBox="0 0 24 24"><path d="M20 15.5A8 8 0 0 1 8.5 4 8.2 8.2 0 1 0 20 15.5Z"/></svg></button>
           <button class="icon-button notification-button" id="notificationButton" aria-label="Notifications">
             <svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg>
             <span class="notification-dot"></span>
@@ -129,7 +139,7 @@
           <button class="avatar-stack account-trigger" id="accountButton" aria-label="Open account menu"><span class="avatar mini">M</span><span class="avatar mini second">A</span></button>
         </div>
       </header>
-      <div class="top-popover notification-popover hidden" id="notificationPopover"><div class="popover-head"><div><span class="modal-kicker">INBOX</span><h3>Notifications</h3></div><button class="text-button" id="markNotificationsRead">Mark all read</button></div><div class="notification-list" id="notificationList"></div></div>
+      <div class="top-popover notification-popover hidden" id="notificationPopover"><div class="popover-head"><div><span class="modal-kicker">INBOX</span><h3>Notifications</h3></div><div class="popover-head-actions"><button class="text-button" id="enableBrowserAlerts">Enable alerts</button><button class="text-button" id="markNotificationsRead">Mark all read</button></div></div><div class="notification-list" id="notificationList"></div></div>
       <div class="top-popover account-popover hidden" id="accountPopover"><div class="account-summary"><span class="avatar" id="accountAvatar">A</span><div><strong id="accountName">Aiman Firdaus</strong><small id="accountEmail">Local preview</small></div></div><div class="account-menu"><button id="accountSettingsAction"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H3v-4h.2a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1a1.7 1.7 0 0 0 1.9.3 1.7 1.7 0 0 0 1-1.6V3h4v.2a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1z"/></svg>Workspace settings</button><button id="accountCloudAction"><svg viewBox="0 0 24 24"><path d="M6 19a4 4 0 1 1 1-7.9A6 6 0 0 1 18.7 9 5 5 0 0 1 19 19z"/></svg>Cloud & account</button><button id="accountActivityAction"><svg viewBox="0 0 24 24"><path d="M12 8v5l3 2"/><circle cx="12" cy="12" r="9"/></svg>Activity history</button><button id="accountSwitchAction"><svg viewBox="0 0 24 24"><path d="M8 7h11l-3-3M16 17H5l3 3M19 7l-3 3M5 17l3-3"/></svg>Switch account</button></div><div class="account-sync"><span class="sync-live-dot"></span><span id="accountSyncStatus">Local mode</span></div></div>
 
       <section class="view active" id="homeView" data-view="home">
@@ -148,6 +158,12 @@
           <section class="people-dashboard" aria-label="Shared dashboard">
             <article class="person-overview person-one"><div class="person-overview-head"><span class="avatar" id="overviewAvatarOne">A</span><div><span class="tiny-label">PERSONAL SPACE</span><h3 id="overviewNameOne">Aiman Firdaus</h3><span class="person-presence offline" id="presenceOne"><i></i>Offline</span></div><button class="text-button" data-person-tasks="me">View tasks</button></div><div class="person-metrics"><div><strong id="overviewTasksOne">0</strong><span>open tasks</span></div><div><strong id="overviewClassesOne">0</strong><span>classes today</span></div></div><div class="next-class" id="overviewNextOne">No classes scheduled today</div></article>
             <article class="person-overview person-two"><div class="person-overview-head"><span class="avatar second" id="overviewAvatarTwo">A</span><div><span class="tiny-label">PERSONAL SPACE</span><h3 id="overviewNameTwo">Abyadina Irisha</h3><span class="person-presence offline" id="presenceTwo"><i></i>Offline</span></div><button class="text-button" data-person-tasks="partner">View tasks</button></div><div class="person-metrics"><div><strong id="overviewTasksTwo">0</strong><span>open tasks</span></div><div><strong id="overviewClassesTwo">0</strong><span>classes today</span></div></div><div class="next-class" id="overviewNextTwo">No classes scheduled today</div></article>
+          </section>
+
+          <section class="living-dashboard" aria-label="Live daily overview">
+            <article class="living-timeline card"><div class="living-head"><div><span class="modal-kicker">LIVE DAY</span><h2>Right now</h2></div><span class="live-clock" id="liveClock">--:--</span></div><div class="now-card" id="nowCard"><span class="now-pulse"></span><div><strong>Your schedule is clear</strong><small>Nothing happening right now</small></div></div><div class="day-rail" id="dayRail"></div></article>
+            <article class="shared-window card"><span class="modal-kicker">TOGETHER</span><h2 id="freeTimeTitle">Finding shared free time…</h2><p id="freeTimeCopy">HoneyButter compares both timetables for today.</p><button class="secondary-button" data-view-target="timetable">Open schedules</button></article>
+            <article class="checkin-card card"><div class="checkin-top"><div><span class="modal-kicker">DAILY CHECK-IN</span><h2>How are you both?</h2></div><button class="text-button" id="openCheckinBtn">Update mine</button></div><div class="checkin-people" id="checkinPeople"></div></article>
           </section>
 
           <div class="home-grid">
@@ -227,22 +243,44 @@
         <div class="page-wrap wide-page">
           <div class="page-title-row"><div><p class="eyebrow">TWO SCHEDULES, ONE SHARED VIEW</p><h1>Timetables</h1><p class="subhead">See where both of you need to be without mixing up your courses.</p></div><div class="page-actions"><button class="secondary-button" id="importCalendarBtn">Import .ics</button><button class="secondary-button" id="exportCalendarBtn">Export .ics</button><button class="primary-button" data-action="new-class"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Add class</button><input class="hidden" type="file" id="calendarFileInput" accept=".ics,text/calendar"></div></div>
           <div class="timetable-toolbar"><div class="segmented" id="timetableFilters"><button class="active" data-timetable-filter="all">Both</button><button data-timetable-filter="me" id="timetablePersonOne">Aiman</button><button data-timetable-filter="partner" id="timetablePersonTwo">Abyadina</button></div><div class="schedule-key"><span><i class="schedule-dot one"></i><span id="scheduleKeyOne">Aiman Firdaus</span></span><span><i class="schedule-dot two"></i><span id="scheduleKeyTwo">Abyadina Irisha</span></span></div></div>
+          <p class="drag-hint"><span>↕</span> Drag a class between days to reschedule it. Click any class to edit its exact time.</p>
           <div class="timetable-grid" id="timetableGrid"></div>
+        </div>
+      </section>
+
+      <section class="view" id="focusView" data-view="focus">
+        <div class="page-wrap wide-page focus-page">
+          <div class="page-title-row"><div><p class="eyebrow">A QUIET ROOM FOR DEEP WORK</p><h1>Shared focus room</h1><p class="subhead">Study together, even when you are in different places.</p></div><div class="focus-live-pill"><i></i><span id="focusRoomStatus">Room is quiet</span></div></div>
+          <div class="focus-room-layout">
+            <section class="focus-timer-card"><div class="focus-ambience"><span></span><span></span><span></span></div><span class="modal-kicker">YOUR SESSION</span><input class="focus-label-input" id="focusLabel" maxlength="80" value="Deep work" aria-label="Focus session name"><div class="focus-clock" id="focusClock">25:00</div><div class="focus-presets" id="focusPresets"><button data-focus-minutes="25" class="active">25 min</button><button data-focus-minutes="45">45 min</button><button data-focus-minutes="60">60 min</button></div><div class="focus-controls"><button class="primary-button focus-start" id="focusStartBtn"><svg viewBox="0 0 24 24"><path d="m9 7 8 5-8 5z"/></svg>Start focus</button><button class="secondary-button hidden" id="focusFinishBtn">Finish early</button></div><p class="focus-help">Your partner will see that you are focusing, but not any private note content.</p></section>
+            <aside class="focus-side"><section class="card partner-room"><div class="card-heading"><div><span class="heading-icon"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-4 2-7 6-7s6 3 6 7M16 8h5M18.5 5.5v5"/></svg></span><h2>In the room</h2></div></div><div id="focusPeople" class="focus-people"></div></section><section class="card focus-history-card"><div class="card-heading"><div><span class="heading-icon"><svg viewBox="0 0 24 24"><path d="M12 8v5l3 2"/><circle cx="12" cy="12" r="9"/></svg></span><h2>This week</h2></div></div><div class="focus-stats" id="focusStats"></div><div class="focus-history" id="focusHistory"></div></section></aside>
+          </div>
         </div>
       </section>
 
       <section class="view" id="vaultView" data-view="vault">
         <div class="page-wrap">
-          <div class="page-title-row"><div><p class="eyebrow">YOUR SHARED MEMORY</p><h1>The vault</h1><p class="subhead">Notes, ideas, decisions, files, and the little things worth keeping.</p></div><div class="page-actions"><button class="secondary-button" id="documentUploadBtn"><svg viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></svg>Import document</button><button class="primary-button" data-action="new-note"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>New note</button><input class="hidden" type="file" id="documentFileInput" accept=".pdf,.txt,.md,.csv,image/*,audio/*"></div></div>
+          <div class="page-title-row"><div><p class="eyebrow">YOUR SHARED MEMORY</p><h1>The vault</h1><p class="subhead">Notes, ideas, decisions, files, and the little things worth keeping.</p></div><div class="page-actions"><button class="secondary-button" id="documentUploadBtn"><svg viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></svg>Import document</button><button class="primary-button" data-action="new-note"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>New note</button><input class="hidden" type="file" id="documentFileInput" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.md,.csv,.json,.html,.css,.js,.ts,.py,.java,.sql,.xml,image/*,audio/*"></div></div>
           <div class="vault-toolbar"><label class="vault-search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input id="vaultSearch" placeholder="Search everything you’ve saved..."></label><div class="segmented" id="vaultFilters"><button class="active" data-vault-filter="all">All</button><button data-vault-filter="private">My private brain</button><button data-vault-filter="shared">Shared brain</button><button data-vault-filter="study">Study</button><button data-vault-filter="plans">Plans</button></div></div>
           <div class="vault-layout"><div class="notes-grid" id="notesGrid"></div><aside class="vault-insights"><span class="insight-mark">✦</span><h3>Your brain is growing</h3><p id="brainStats">0 memories indexed and ready to help.</p><div class="insight-rule"></div><span class="tiny-label">CONNECTED IDEAS</span><div id="tagCloud" class="tag-cloud"></div><button class="secondary-button full" data-action="open-brain">Ask your brain</button></aside></div>
+        </div>
+      </section>
+
+      <section class="view" id="filesView" data-view="files">
+        <div class="file-page">
+          <header class="file-page-head"><div><p class="eyebrow">DOCUMENTS, CODE, SLIDES, AND RESEARCH</p><h1>File studio</h1><p class="subhead">Open, search, annotate and edit your workspace files.</p></div><div class="page-actions"><button class="secondary-button" id="newTextFileBtn">New text file</button><button class="primary-button" id="studioUploadBtn"><svg viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></svg>Upload files</button><input class="hidden" type="file" id="studioFileInput" multiple accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.csv,.txt,.md,.json,.html,.css,.js,.ts,.py,.java,.sql,.xml,.rtf,.odt,image/*,audio/*"></div></header>
+          <div class="file-studio">
+            <aside class="file-explorer"><div class="explorer-head"><strong>Workspace</strong><button class="icon-button" id="explorerUploadBtn" aria-label="Upload"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button></div><label class="explorer-search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input id="fileSearch" placeholder="Find a file"></label><div class="file-filter-row" id="fileFilters"><button class="active" data-file-filter="all">All</button><button data-file-filter="mine">Mine</button><button data-file-filter="shared">Shared</button></div><div class="file-tree" id="fileTree"></div><div class="storage-note"><span>Private cloud storage</span><small>Office/PDF edits are saved as extracted text and annotations.</small></div></aside>
+            <main class="file-workbench"><div class="editor-tabs" id="editorTabs"><div class="empty-tab">No file open</div></div><div class="editor-toolbar"><div class="editor-mode"><button class="active" data-editor-mode="read">Read</button><button data-editor-mode="edit">Edit text</button></div><div class="editor-actions"><button id="highlightSelectionBtn" title="Highlight selected text"><svg viewBox="0 0 24 24"><path d="m4 20 5-1 10-10-4-4L5 15zM13 7l4 4"/></svg>Highlight</button><button id="saveFileEditsBtn"><svg viewBox="0 0 24 24"><path d="M5 4h12l2 2v14H5zM8 4v6h8V4M8 20v-6h8v6"/></svg>Save</button><button id="downloadStudioFileBtn" title="Download original"><svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg></button></div></div><div class="file-canvas" id="fileCanvas"><div class="file-empty-state"><span>⌘</span><h2>Open a file to begin</h2><p>DOCX, PDF, PPTX, spreadsheets, text and code are supported.</p></div></div><div class="editor-status"><span id="editorFileType">Ready</span><span id="editorWordCount">0 words</span><span id="editorSaveStatus">All changes saved</span></div></main>
+            <aside class="file-inspector"><div class="inspector-section"><span class="modal-kicker">FILE DETAILS</span><div id="fileDetails" class="file-details"><p>Select a file to inspect it.</p></div></div><div class="inspector-section"><div class="inspector-title"><span class="modal-kicker">HIGHLIGHTS</span><span id="highlightCount">0</span></div><div class="highlight-list" id="highlightList"></div></div><div class="inspector-section"><span class="modal-kicker">ASK THIS FILE</span><form class="file-ask" id="fileAskForm"><textarea id="fileAskInput" rows="3" placeholder="Summarize this file or explain a highlighted section…"></textarea><button class="primary-button full">Ask HoneyButter</button></form></div></aside>
+          </div>
         </div>
       </section>
 
       <section class="view" id="graphView" data-view="graph">
         <div class="page-wrap wide-page">
           <div class="page-title-row graph-title-row"><div><p class="eyebrow">SEE HOW EVERYTHING CONNECTS</p><h1>Knowledge graph</h1><p class="subhead">A living map generated from your notes, tags, categories, and unfinished work.</p></div><div class="graph-actions"><button class="secondary-button" id="exportGraphJson"><svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>Export JSON</button><button class="primary-button" id="exportGraphSvg"><svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>Export SVG</button></div></div>
-          <div class="graph-toolbar"><div class="graph-legend"><span><i class="legend-memory"></i>Memory</span><span><i class="legend-tag"></i>Tag</span><span><i class="legend-task"></i>Task</span><span><i class="legend-space"></i>Space</span></div><label class="inline-search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input id="graphSearch" placeholder="Highlight a connection"></label></div>
+          <div class="graph-toolbar"><div class="graph-legend"><button class="active" data-graph-filter="all">All</button><button data-graph-filter="memory"><i class="legend-memory"></i>Memory</button><button data-graph-filter="tag"><i class="legend-tag"></i>Tag</button><button data-graph-filter="task"><i class="legend-task"></i>Task</button><button data-graph-filter="file"><i class="legend-file"></i>File</button></div><label class="inline-search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input id="graphSearch" placeholder="Highlight a connection"></label></div>
           <div class="graph-layout">
             <div class="graph-stage" id="graphStage"><svg id="knowledgeGraph" viewBox="0 0 900 600" role="img" aria-label="Interactive knowledge graph"></svg><div class="graph-controls"><button id="graphZoomOut" aria-label="Zoom out">−</button><span id="graphZoomLabel">100%</span><button id="graphZoomIn" aria-label="Zoom in">+</button></div></div>
             <aside class="graph-inspector" id="graphInspector"><span class="insight-mark">✦</span><h3>Your shared universe</h3><p>Select any node to see why it is connected. The graph rebuilds itself whenever you save something.</p><div class="insight-rule"></div><div class="graph-stat-grid" id="graphStats"></div></aside>
@@ -323,6 +361,16 @@
     </form>
   </dialog>
 
+  <dialog class="modal" id="checkinModal">
+    <form method="dialog" class="modal-panel" id="checkinForm">
+      <div class="modal-header"><div><span class="modal-kicker">TODAY</span><h2>Share a gentle check-in</h2></div><button class="icon-button modal-close" value="cancel" aria-label="Close"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>
+      <label class="field"><span>How are you feeling?</span><div class="mood-picker" id="moodPicker"><button type="button" data-mood="great">😊<small>Great</small></button><button type="button" data-mood="good" class="active">🙂<small>Good</small></button><button type="button" data-mood="tired">😴<small>Tired</small></button><button type="button" data-mood="stressed">😵<small>Stressed</small></button><button type="button" data-mood="low">🌧️<small>Low</small></button></div></label>
+      <label class="field"><span>Availability</span><select id="checkinAvailability"><option value="available">Available</option><option value="studying">Studying</option><option value="busy">Busy</option><option value="need-space">Need quiet time</option><option value="free-to-talk">Free to talk</option></select></label>
+      <label class="field"><span>Anything you want to share?</span><textarea id="checkinMessage" rows="4" maxlength="300" placeholder="A small update, encouragement, or something you need help with…"></textarea></label>
+      <div class="modal-actions"><span></span><button value="cancel" class="ghost-button">Cancel</button><button type="submit" class="primary-button">Save check-in</button></div>
+    </form>
+  </dialog>
+
   <dialog class="modal" id="cloudModal">
     <div class="modal-panel cloud-panel">
       <div class="modal-header"><div><span class="modal-kicker">SUPABASE CLOUD</span><h2>Share your HoneyButter workspace</h2></div><button class="icon-button modal-close" id="cloudClose" aria-label="Close"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>
@@ -360,8 +408,12 @@
   <div class="toast-region" id="toastRegion" aria-live="polite"></div>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="supabase-config.js"></script>
   <script src="supabase-client.js"></script>
   <script src="app.js"></script>
+  <script src="v4.js"></script>
 </body>
 </html>

@@ -45,7 +45,12 @@
       ],
       timetables: [],
       courses: [],
-      activities: []
+      activities: [],
+      files: [],
+      highlights: [],
+      focusSessions: [],
+      checkins: [],
+      preferences: { theme: "light" }
     };
   }
 
@@ -58,6 +63,11 @@
       saved.timetables ||= [];
       saved.courses ||= [];
       saved.activities ||= [];
+      saved.files ||= [];
+      saved.highlights ||= [];
+      saved.focusSessions ||= [];
+      saved.checkins ||= [];
+      saved.preferences ||= { theme: "light" };
       return saved;
     } catch (_) { return initialState(); }
   }
@@ -72,7 +82,7 @@
   let graphZoom = 1;
   let selectedLoginPerson = "me";
   let presenceMembers = [];
-  let localPreview = false;
+  let localPreview = ["127.0.0.1", "localhost"].includes(location.hostname) && new URLSearchParams(location.search).has("preview");
 
   function scheduleCloudSync() {
     if (!cloudStatus.workspace || !window.KinCloud) return;
@@ -89,7 +99,11 @@
       state.activities.unshift({ id: uid(), actor: ownerLabel(currentSlot()), message, createdAt: new Date().toISOString() });
       state.activities = state.activities.slice(0, 100);
     }
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+    catch (_) {
+      const compact = { ...state, files: (state.files || []).map((file) => ({ ...file, extractedContent: (file.extractedContent || "").slice(0, 20000), editedContent: file.editedContent?.slice(0, 20000) ?? null })) };
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(compact)); } catch (_) {}
+    }
     renderAll();
     scheduleCloudSync();
     if (message) toast(message);
@@ -131,6 +145,7 @@
     renderActivity();
     renderVault();
     renderGraph();
+    window.HoneyButterV4?.renderAll?.();
   }
 
   function renderHeader() {
@@ -144,6 +159,7 @@
     $("#taskNavCount").textContent = state.tasks.filter((task) => !task.completed).length;
     $("#vaultNavCount").textContent = state.notes.length;
     $("#courseNavCount").textContent = state.courses.length;
+    if ($("#fileNavCount")) $("#fileNavCount").textContent = state.files?.length || 0;
     $("#overviewNameOne").textContent = state.profile.name;
     $("#overviewNameTwo").textContent = state.profile.partner;
     $("#scheduleKeyOne").textContent = state.profile.name;
@@ -265,7 +281,7 @@
     $("#timetableGrid").innerHTML = dayNames.map((name, index) => {
       const day = index + 1;
       const items = state.timetables.filter((item) => item.day === day && (activeTimetableFilter === "all" || item.owner === activeTimetableFilter)).sort((a, b) => a.start.localeCompare(b.start));
-      return `<section class="timetable-day ${day === todayDay ? "today" : ""}"><div class="timetable-day-head">${name}</div><div class="class-list">${items.length ? items.map((item) => `<button class="class-card ${item.owner} ${item.color}" data-class-id="${item.id}"><time>${escapeHtml(item.start)} – ${escapeHtml(item.end)}</time><strong>${escapeHtml(item.courseCode || item.title)}</strong>${item.courseCode ? `<span>${escapeHtml(item.title)}</span>` : ""}<small>${escapeHtml(ownerLabel(item.owner))}${item.location ? ` · ${escapeHtml(item.location)}` : ""}</small></button>`).join("") : `<div class="empty-day">No classes</div>`}</div></section>`;
+      return `<section class="timetable-day ${day === todayDay ? "today" : ""}" data-timetable-day="${day}"><div class="timetable-day-head">${name}</div><div class="class-list">${items.length ? items.map((item) => `<button class="class-card ${item.owner} ${item.color}" data-class-id="${item.id}" draggable="true"><time>${escapeHtml(item.start)} – ${escapeHtml(item.end)}</time><strong>${escapeHtml(item.courseCode || item.title)}</strong>${item.courseCode ? `<span>${escapeHtml(item.title)}</span>` : ""}<small>${escapeHtml(ownerLabel(item.owner))}${item.location ? ` · ${escapeHtml(item.location)}` : ""}</small></button>`).join("") : `<div class="empty-day">No classes</div>`}</div></section>`;
     }).join("");
   }
 
@@ -427,12 +443,25 @@
         addEdge(noteId, tagId, "tagged");
       });
     });
+    (state.files || []).forEach((file) => {
+      const fileId = `file:${file.id}`;
+      addNode({ id: fileId, sourceId: file.id, type: "file", label: file.name, body: file.editedContent || file.extractedContent || "Workspace file" });
+      addEdge("root", fileId, "stores");
+      if (file.courseId) {
+        const course = state.courses.find((item) => item.id === file.courseId);
+        if (course) {
+          const courseTag = `tag:${course.code.toLowerCase()}`;
+          addNode({ id: courseTag, type: "tag", label: `#${course.code.toLowerCase()}`, body: course.title });
+          addEdge(fileId, courseTag, "course");
+        }
+      }
+    });
     state.tasks.filter((task) => !task.completed).slice(0, 24).forEach((task) => {
       const taskId = `task:${task.id}`;
       addNode({ id: taskId, sourceId: task.id, type: "task", label: task.title, body: `${relativeDate(task.date)} · ${ownerLabel(task.owner)}` });
       addEdge(taskId, `space:${task.category}`, "belongs to");
     });
-    const rings = { root: 0, space: 105, tag: 190, memory: 270, task: 330 };
+    const rings = { root: 0, space: 105, tag: 185, file: 245, memory: 295, task: 340 };
     Object.keys(rings).forEach((type) => {
       const group = nodes.filter((node) => node.type === type);
       group.forEach((node, index) => {
@@ -449,7 +478,7 @@
   function renderGraph() {
     graphData = buildGraphData();
     const nodeMap = new Map(graphData.nodes.map((node) => [node.id, node]));
-    const radius = { root: 21, space: 14, tag: 11, memory: 12, task: 10 };
+    const radius = { root: 21, space: 14, tag: 11, file: 11, memory: 12, task: 10 };
     const lines = graphData.edges.map((edge, index) => {
       const a = nodeMap.get(edge.source), b = nodeMap.get(edge.target);
       return `<line class="graph-edge" data-edge-index="${index}" x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}"><title>${escapeHtml(edge.relation)}</title></line>`;
@@ -460,7 +489,7 @@
       [state.notes.length, "memories"],
       [new Set(state.notes.flatMap((note) => note.tags.map((tag) => tag.toLowerCase()))).size, "connected tags"],
       [state.tasks.filter((task) => !task.completed).length, "open tasks"],
-      [graphData.edges.length, "relationships"]
+      [(state.files || []).length, "workspace files"]
     ].map(([number, label]) => `<div class="graph-stat"><strong>${number}</strong><span>${label}</span></div>`).join("");
     applyGraphSearch();
   }
@@ -577,7 +606,8 @@
     const words = tokenize(question);
     const documents = [
       ...state.notes.map((note) => ({ type: "memory", title: note.title, text: note.content, meta: note.tags.join(", "), date: note.updatedAt })),
-      ...state.tasks.filter((task) => [currentSlot(), "both"].includes(task.owner)).map((task) => ({ type: "task", title: task.title, text: task.details, meta: `${task.category} ${ownerLabel(task.owner)} ${task.completed ? "completed" : "unfinished"}`, date: task.date, completed: task.completed }))
+      ...state.tasks.filter((task) => [currentSlot(), "both"].includes(task.owner)).map((task) => ({ type: "task", title: task.title, text: task.details, meta: `${task.category} ${ownerLabel(task.owner)} ${task.completed ? "completed" : "unfinished"}`, date: task.date, completed: task.completed })),
+      ...(state.files || []).map((file) => ({ type: "file", title: file.name, text: (file.editedContent || file.extractedContent || "").slice(0, 20000), meta: `${file.extension} ${file.visibility}`, date: file.updatedAt }))
     ];
     const scored = documents.map((doc) => {
       const haystack = tokenize(`${doc.title} ${doc.text} ${doc.meta}`);
@@ -608,7 +638,8 @@
     let answer = "", mode = "Local grounded retrieval";
     if (cloudStatus.workspace && window.KinCloud.askAI) {
       try {
-        const context = { person: ownerLabel(currentSlot()), tasks: state.tasks.filter((task) => [currentSlot(), "both"].includes(task.owner)).slice(0, 80), notes: state.notes.slice(0, 40).map((note) => ({ title: note.title, content: note.content.slice(0, 8000), tags: note.tags, visibility: note.visibility })), courses: state.courses.filter((course) => [currentSlot(), "both"].includes(course.owner)), timetable: state.timetables.filter((item) => item.owner === currentSlot()) };
+        const semanticMemories = window.KinCloud.semanticSearch ? await window.KinCloud.semanticSearch(clean).catch(() => []) : [];
+        const context = { person: ownerLabel(currentSlot()), tasks: state.tasks.filter((task) => [currentSlot(), "both"].includes(task.owner)).slice(0, 80), notes: state.notes.slice(0, 40).map((note) => ({ title: note.title, content: note.content.slice(0, 8000), tags: note.tags, visibility: note.visibility })), semanticMemories, files: (state.files || []).slice(0, 20).map((file) => ({ name: file.name, content: (file.editedContent || file.extractedContent || "").slice(0, 12000), visibility: file.visibility, extension: file.extension })), courses: state.courses.filter((course) => [currentSlot(), "both"].includes(course.owner)), timetable: state.timetables.filter((item) => item.owner === currentSlot()) };
         answer = await window.KinCloud.askAI(clean, context);
         mode = "OpenAI · grounded in your accessible sources";
       } catch (error) { answer = answerFromBrain(clean); mode = `Local fallback · ${error.message}`; }
@@ -630,8 +661,9 @@
     if (!query) { $("#searchResults").innerHTML = `<div class="search-empty">Start typing to search your whole shared space.</div>`; return; }
     const tasks = state.tasks.filter((task) => `${task.title} ${task.details} ${task.category}`.toLowerCase().includes(query)).map((task) => ({ ...task, kind: "task", body: task.details || relativeDate(task.date) }));
     const notes = state.notes.filter((note) => `${note.title} ${note.content} ${note.tags.join(" ")}`.toLowerCase().includes(query)).map((note) => ({ ...note, kind: "note", body: note.content }));
-    const results = [...tasks, ...notes].slice(0, 12);
-    $("#searchResults").innerHTML = results.length ? results.map((item) => `<button class="search-result" data-search-kind="${item.kind}" data-search-id="${item.id}"><span class="note-icon ${item.category}">${item.kind === "task" ? "✓" : "✦"}</span><span><strong>${escapeHtml(item.title)}</strong><span>${escapeHtml(item.body)}</span></span><small>${item.kind}</small></button>`).join("") : `<div class="search-empty">Nothing matched “${escapeHtml(query)}”.</div>`;
+    const files = (state.files || []).filter((file) => `${file.name} ${file.extension} ${file.editedContent || file.extractedContent || ""}`.toLowerCase().includes(query)).map((file) => ({ ...file, title: file.name, kind: "file", category: "study", body: (file.editedContent || file.extractedContent || `${file.extension.toUpperCase()} file`).slice(0, 180) }));
+    const results = [...tasks, ...notes, ...files].slice(0, 12);
+    $("#searchResults").innerHTML = results.length ? results.map((item) => `<button class="search-result" data-search-kind="${item.kind}" data-search-id="${item.id}"><span class="note-icon ${item.category}">${item.kind === "task" ? "✓" : item.kind === "file" ? "▤" : "✦"}</span><span><strong>${escapeHtml(item.title)}</strong><span>${escapeHtml(item.body)}</span></span><small>${item.kind}</small></button>`).join("") : `<div class="search-empty">Nothing matched “${escapeHtml(query)}”.</div>`;
   }
 
   function toast(message) {
@@ -688,6 +720,7 @@
   }
 
   async function loadCloudWorkspace() {
+    const localV4 = { files: state.files || [], highlights: state.highlights || [], focusSessions: state.focusSessions || [], checkins: state.checkins || [], preferences: state.preferences || { theme: "light" } };
     const remote = await window.KinCloud.loadState();
     if (remote) {
       state = remote;
@@ -695,10 +728,20 @@
       state.timetables ||= [];
       state.courses ||= [];
       state.activities ||= [];
+      state.files ||= [];
+      state.highlights ||= [];
+      state.focusSessions ||= [];
+      state.checkins ||= [];
+      state.preferences ||= { theme: localStorage.getItem("honeybutter-theme") || "light" };
+      if (!window.KinCloud.status().v4Available) Object.assign(state, localV4);
       state.notes = state.notes.map((note) => ({ visibility: "shared", ...note }));
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (_) {}
       renderAll();
       window.KinCloud.syncState(state).catch(() => {});
+      if (window.KinCloud.status().v4Available && window.KinCloud.indexMemories && state.notes.length) {
+        const signature = state.notes.map((note) => `${note.id}:${note.updatedAt}`).join("|");
+        if (localStorage.getItem("honeybutter-memory-index") !== signature) window.KinCloud.indexMemories(state.notes).then(() => localStorage.setItem("honeybutter-memory-index", signature)).catch(() => {});
+      }
     }
   }
 
@@ -716,6 +759,7 @@
     window.KinCloud.startPresence(activeView, (members) => {
       presenceMembers = members;
       renderPresence();
+      window.HoneyButterV4?.renderFocus?.();
     }).catch((error) => toast(`Presence unavailable: ${error.message}`));
   }
 
@@ -776,13 +820,19 @@
     const vaultFilter = event.target.closest("[data-vault-filter]")?.dataset.vaultFilter;
     if (vaultFilter) { activeVaultFilter = vaultFilter; navigate("vault"); $$("[data-vault-filter]").forEach((el) => el.classList.toggle("active", el.dataset.vaultFilter === vaultFilter)); renderVault(); }
     const result = event.target.closest("[data-search-kind]");
-    if (result) { $("#searchModal").close(); result.dataset.searchKind === "task" ? openTask(state.tasks.find((task) => task.id === result.dataset.searchId)) : openNote(state.notes.find((note) => note.id === result.dataset.searchId)); }
+    if (result) {
+      $("#searchModal").close();
+      if (result.dataset.searchKind === "task") openTask(state.tasks.find((task) => task.id === result.dataset.searchId));
+      if (result.dataset.searchKind === "note") openNote(state.notes.find((note) => note.id === result.dataset.searchId));
+      if (result.dataset.searchKind === "file") { navigate("files"); window.HoneyButterV4?.openFile?.(result.dataset.searchId); }
+    }
     const graphNode = event.target.closest("[data-graph-id]");
     if (graphNode) inspectGraphNode(graphNode.dataset.graphId);
     const graphSource = event.target.closest("[data-graph-source]");
     if (graphSource) {
       if (graphSource.dataset.graphSource === "memory") openNote(state.notes.find((note) => note.id === graphSource.dataset.sourceId));
       if (graphSource.dataset.graphSource === "task") openTask(state.tasks.find((task) => task.id === graphSource.dataset.sourceId));
+      if (graphSource.dataset.graphSource === "file") { navigate("files"); window.HoneyButterV4?.openFile?.(graphSource.dataset.sourceId); }
     }
     const notification = event.target.closest("[data-notification-kind]");
     if (notification) {
@@ -975,8 +1025,28 @@
   });
 
   $$("dialog").forEach((dialog) => dialog.addEventListener("click", (event) => { if (event.target === dialog) dialog.close(); }));
+  window.HoneyButterApp = {
+    getState: () => state,
+    setState: (next) => { state = next; },
+    saveState,
+    renderAll,
+    currentSlot,
+    ownerLabel,
+    uid,
+    today,
+    iso,
+    escapeHtml,
+    navigate,
+    toast,
+    askBrain,
+    openTask,
+    openNote,
+    getCloudStatus: () => cloudStatus,
+    getPresenceMembers: () => presenceMembers
+  };
+  updateAuthGate();
   renderAll();
   const initialView = location.hash.slice(1);
-  if (["home", "tasks", "courses", "week", "timetable", "vault", "graph"].includes(initialView)) navigate(initialView);
+  if (["home", "tasks", "courses", "week", "timetable", "focus", "vault", "files", "graph"].includes(initialView)) navigate(initialView);
   initCloud();
 })();
