@@ -39,6 +39,10 @@
           <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>
           <span>This week</span>
         </button>
+        <button class="nav-item" data-view-target="timetable">
+          <svg viewBox="0 0 24 24"><path d="M4 5h16v15H4zM4 10h16M9 5v15M15 5v15"/></svg>
+          <span>Timetables</span>
+        </button>
         <button class="nav-item" data-view-target="vault">
           <svg viewBox="0 0 24 24"><path d="M5 4h13a2 2 0 0 1 2 2v14H7a3 3 0 0 1-3-3V5a1 1 0 0 1 1-1Z"/><path d="M7 16h13M9 8h7"/></svg>
           <span>Vault</span><span class="nav-count" id="vaultNavCount">0</span>
@@ -79,6 +83,7 @@
         </button>
         <div class="mobile-brand">kin</div>
         <div class="topbar-actions">
+          <div class="identity-pill" id="identityPill"><span class="identity-dot"></span><span id="identityLabel">Shared view</span></div>
           <button class="search-trigger" id="searchTrigger">
             <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
             <span>Search anything</span><kbd>⌘ K</kbd>
@@ -103,6 +108,11 @@
               <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg> Add a task
             </button>
           </div>
+
+          <section class="people-dashboard" aria-label="Shared dashboard">
+            <article class="person-overview person-one"><div class="person-overview-head"><span class="avatar" id="overviewAvatarOne">A</span><div><span class="tiny-label">PERSONAL SPACE</span><h3 id="overviewNameOne">Aiman Firdaus</h3></div><button class="text-button" data-person-tasks="me">View tasks</button></div><div class="person-metrics"><div><strong id="overviewTasksOne">0</strong><span>open tasks</span></div><div><strong id="overviewClassesOne">0</strong><span>classes today</span></div></div><div class="next-class" id="overviewNextOne">No classes scheduled today</div></article>
+            <article class="person-overview person-two"><div class="person-overview-head"><span class="avatar second" id="overviewAvatarTwo">A</span><div><span class="tiny-label">PERSONAL SPACE</span><h3 id="overviewNameTwo">Abyadina Irisha</h3></div><button class="text-button" data-person-tasks="partner">View tasks</button></div><div class="person-metrics"><div><strong id="overviewTasksTwo">0</strong><span>open tasks</span></div><div><strong id="overviewClassesTwo">0</strong><span>classes today</span></div></div><div class="next-class" id="overviewNextTwo">No classes scheduled today</div></article>
+          </section>
 
           <div class="home-grid">
             <section class="card focus-card">
@@ -158,7 +168,7 @@
       <section class="view" id="tasksView" data-view="tasks">
         <div class="page-wrap">
           <div class="page-title-row"><div><p class="eyebrow">MAKE SPACE FOR WHAT MATTERS</p><h1>Tasks</h1><p class="subhead">Everything you both need to remember, in one calm place.</p></div><button class="primary-button" data-action="new-task"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>New task</button></div>
-          <div class="toolbar"><div class="segmented" id="taskFilters"><button class="active" data-task-filter="all">All</button><button data-task-filter="today">Today</button><button data-task-filter="mine">Mine</button><button data-task-filter="completed">Completed</button></div><label class="inline-search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input id="taskSearch" placeholder="Find a task"></label></div>
+          <div class="toolbar"><div class="segmented" id="taskFilters"><button class="active" data-task-filter="all">All</button><button data-task-filter="today">Today</button><button data-task-filter="mine" id="myTaskFilter">My tasks</button><button data-task-filter="aiman" id="aimanTaskFilter">Aiman</button><button data-task-filter="abyadina" id="abyadinaTaskFilter">Abyadina</button><button data-task-filter="completed">Completed</button></div><label class="inline-search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input id="taskSearch" placeholder="Find a task"></label></div>
           <div class="task-board" id="taskBoard"></div>
         </div>
       </section>
@@ -170,10 +180,18 @@
         </div>
       </section>
 
+      <section class="view" id="timetableView" data-view="timetable">
+        <div class="page-wrap wide-page">
+          <div class="page-title-row"><div><p class="eyebrow">TWO SCHEDULES, ONE SHARED VIEW</p><h1>Timetables</h1><p class="subhead">See where both of you need to be without mixing up your courses.</p></div><button class="primary-button" data-action="new-class"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Add class</button></div>
+          <div class="timetable-toolbar"><div class="segmented" id="timetableFilters"><button class="active" data-timetable-filter="all">Both</button><button data-timetable-filter="me" id="timetablePersonOne">Aiman</button><button data-timetable-filter="partner" id="timetablePersonTwo">Abyadina</button></div><div class="schedule-key"><span><i class="schedule-dot one"></i><span id="scheduleKeyOne">Aiman Firdaus</span></span><span><i class="schedule-dot two"></i><span id="scheduleKeyTwo">Abyadina Irisha</span></span></div></div>
+          <div class="timetable-grid" id="timetableGrid"></div>
+        </div>
+      </section>
+
       <section class="view" id="vaultView" data-view="vault">
         <div class="page-wrap">
           <div class="page-title-row"><div><p class="eyebrow">YOUR SHARED MEMORY</p><h1>The vault</h1><p class="subhead">Notes, ideas, decisions, and the little things worth keeping.</p></div><button class="primary-button" data-action="new-note"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>New note</button></div>
-          <div class="vault-toolbar"><label class="vault-search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input id="vaultSearch" placeholder="Search everything you’ve saved..."></label><div class="segmented" id="vaultFilters"><button class="active" data-vault-filter="all">All</button><button data-vault-filter="personal">Personal</button><button data-vault-filter="study">Study</button><button data-vault-filter="plans">Plans</button></div></div>
+          <div class="vault-toolbar"><label class="vault-search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input id="vaultSearch" placeholder="Search everything you’ve saved..."></label><div class="segmented" id="vaultFilters"><button class="active" data-vault-filter="all">All</button><button data-vault-filter="private">My private brain</button><button data-vault-filter="shared">Shared brain</button><button data-vault-filter="study">Study</button><button data-vault-filter="plans">Plans</button></div></div>
           <div class="vault-layout"><div class="notes-grid" id="notesGrid"></div><aside class="vault-insights"><span class="insight-mark">✦</span><h3>Your brain is growing</h3><p id="brainStats">0 memories indexed and ready to help.</p><div class="insight-rule"></div><span class="tiny-label">CONNECTED IDEAS</span><div id="tagCloud" class="tag-cloud"></div><button class="secondary-button full" data-action="open-brain">Ask your brain</button></aside></div>
         </div>
       </section>
@@ -219,7 +237,20 @@
         <label class="field"><span>Space</span><select id="noteCategory"><option value="personal">Personal</option><option value="study">Study</option><option value="plans">Plans & dreams</option></select></label>
         <label class="field"><span>Tags</span><input id="noteTags" placeholder="travel, idea, important"></label>
       </div>
+      <label class="field"><span>Who can use this memory?</span><select id="noteVisibility"><option value="private">Only me — personal Brain</option><option value="shared">Both of us — shared Brain</option></select></label>
       <div class="modal-actions"><button type="button" class="danger-button hidden" id="deleteNoteBtn">Delete</button><span></span><button value="cancel" class="ghost-button">Cancel</button><button type="submit" class="primary-button">Save to vault</button></div>
+    </form>
+  </dialog>
+
+  <dialog class="modal" id="timetableModal">
+    <form method="dialog" class="modal-panel" id="timetableForm">
+      <div class="modal-header"><div><span class="modal-kicker">TIMETABLE</span><h2 id="timetableModalTitle">Add a class</h2></div><button class="icon-button modal-close" value="cancel" aria-label="Close"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>
+      <input type="hidden" id="timetableId">
+      <div class="field-row"><label class="field"><span>Course code</span><input id="classCode" maxlength="20" placeholder="e.g. ISP568"></label><label class="field"><span>Course name</span><input id="classTitle" required maxlength="100" placeholder="e.g. Information Systems"></label></div>
+      <div class="field-row"><label class="field"><span>Student</span><select id="classOwner"><option value="me">Aiman Firdaus</option><option value="partner">Abyadina Irisha</option></select></label><label class="field"><span>Day</span><select id="classDay"><option value="1">Monday</option><option value="2">Tuesday</option><option value="3">Wednesday</option><option value="4">Thursday</option><option value="5">Friday</option><option value="6">Saturday</option><option value="7">Sunday</option></select></label></div>
+      <div class="field-row"><label class="field"><span>Starts</span><input id="classStart" type="time" required></label><label class="field"><span>Ends</span><input id="classEnd" type="time" required></label></div>
+      <div class="field-row"><label class="field"><span>Location</span><input id="classLocation" maxlength="80" placeholder="Room or online link"></label><label class="field"><span>Colour</span><select id="classColor"><option value="blue">Blue</option><option value="coral">Coral</option><option value="sage">Sage</option><option value="gold">Gold</option><option value="violet">Violet</option></select></label></div>
+      <div class="modal-actions"><button type="button" class="danger-button hidden" id="deleteClassBtn">Delete</button><span></span><button value="cancel" class="ghost-button">Cancel</button><button type="submit" class="primary-button">Save class</button></div>
     </form>
   </dialog>
 

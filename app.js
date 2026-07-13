@@ -3,6 +3,7 @@
   "use strict";
 
   const STORAGE_KEY = "kin-workspace-v1";
+  const PEOPLE = { name: "Aiman Firdaus", partner: "Abyadina Irisha" };
   const DAY = 86400000;
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -28,7 +29,7 @@
     const dateAt = (offset) => iso(new Date(base.getTime() + offset * DAY));
     const now = new Date().toISOString();
     return {
-      profile: { name: "Manpaus", partner: "Alya" },
+      profile: { ...PEOPLE },
       tasks: [
         { id: uid(), title: "Finish database assignment", details: "Complete the ERD and final query examples.", date: today(), owner: "me", category: "study", priority: "high", completed: false, createdAt: now },
         { id: uid(), title: "Plan our weekend dinner", details: "Choose somewhere quiet and make a reservation.", date: today(), owner: "both", category: "plans", priority: "normal", completed: false, createdAt: now },
@@ -38,23 +39,29 @@
         { id: uid(), title: "Buy groceries", details: "Fruit, coffee, milk, and pasta.", date: dateAt(0), owner: "me", category: "home", priority: "normal", completed: true, createdAt: now }
       ],
       notes: [
-        { id: uid(), title: "Our travel wishlist", content: "Japan during autumn, a quiet beach trip to Redang, and a long weekend exploring Penang food together.", category: "plans", tags: ["travel", "together"], createdAt: new Date(Date.now() - DAY).toISOString(), updatedAt: new Date(Date.now() - DAY).toISOString() },
-        { id: uid(), title: "How she likes her coffee", content: "Iced latte, less sweet, with oat milk when it is available. No whipped cream.", category: "personal", tags: ["little things", "coffee"], createdAt: new Date(Date.now() - 2 * DAY).toISOString(), updatedAt: new Date(Date.now() - 2 * DAY).toISOString() },
-        { id: uid(), title: "ISP568 project direction", content: "Build a useful shared system with a calm interface. The main idea is a personal knowledge vault connected to daily tasks and an assistant.", category: "study", tags: ["project", "ai", "idea"], createdAt: new Date(Date.now() - 4 * DAY).toISOString(), updatedAt: new Date(Date.now() - 4 * DAY).toISOString() }
-      ]
+        { id: uid(), title: "Our travel wishlist", content: "Japan during autumn, a quiet beach trip to Redang, and a long weekend exploring Penang food together.", category: "plans", tags: ["travel", "together"], visibility: "shared", createdAt: new Date(Date.now() - DAY).toISOString(), updatedAt: new Date(Date.now() - DAY).toISOString() },
+        { id: uid(), title: "How she likes her coffee", content: "Iced latte, less sweet, with oat milk when it is available. No whipped cream.", category: "personal", tags: ["little things", "coffee"], visibility: "shared", createdAt: new Date(Date.now() - 2 * DAY).toISOString(), updatedAt: new Date(Date.now() - 2 * DAY).toISOString() },
+        { id: uid(), title: "ISP568 project direction", content: "Build a useful shared system with a calm interface. The main idea is a personal knowledge vault connected to daily tasks and an assistant.", category: "study", tags: ["project", "ai", "idea"], visibility: "private", createdAt: new Date(Date.now() - 4 * DAY).toISOString(), updatedAt: new Date(Date.now() - 4 * DAY).toISOString() }
+      ],
+      timetables: []
     };
   }
 
   function loadState() {
     try {
       const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
-      return saved && saved.tasks && saved.notes ? saved : initialState();
+      if (!saved || !saved.tasks || !saved.notes) return initialState();
+      saved.profile = { ...PEOPLE };
+      saved.notes = saved.notes.map((note) => ({ visibility: "shared", ...note }));
+      saved.timetables ||= [];
+      return saved;
     } catch (_) { return initialState(); }
   }
 
   let state = loadState();
   let activeTaskFilter = "all";
   let activeVaultFilter = "all";
+  let activeTimetableFilter = "all";
   let cloudStatus = { configured: false, signedIn: false, workspace: null };
   let cloudTimer = null;
   let graphData = { nodes: [], edges: [] };
@@ -100,11 +107,13 @@
 
   function renderAll() {
     renderHeader();
+    renderPeopleDashboard();
     renderFocus();
     renderWeekStrip();
     renderRecentNotes();
     renderTaskBoard();
     renderPlanner();
+    renderTimetable();
     renderVault();
     renderGraph();
   }
@@ -118,6 +127,34 @@
     $$(".avatar.second").forEach((el) => el.textContent = state.profile.partner.charAt(0).toUpperCase());
     $("#taskNavCount").textContent = state.tasks.filter((task) => !task.completed).length;
     $("#vaultNavCount").textContent = state.notes.length;
+    $("#overviewNameOne").textContent = state.profile.name;
+    $("#overviewNameTwo").textContent = state.profile.partner;
+    $("#scheduleKeyOne").textContent = state.profile.name;
+    $("#scheduleKeyTwo").textContent = state.profile.partner;
+    $("#aimanTaskFilter").textContent = state.profile.name.split(" ")[0];
+    $("#abyadinaTaskFilter").textContent = state.profile.partner.split(" ")[0];
+    $("#timetablePersonOne").textContent = state.profile.name.split(" ")[0];
+    $("#timetablePersonTwo").textContent = state.profile.partner.split(" ")[0];
+    $("#taskOwner").options[0].textContent = state.profile.name;
+    $("#taskOwner").options[1].textContent = state.profile.partner;
+    $("#classOwner").options[0].textContent = state.profile.name;
+    $("#classOwner").options[1].textContent = state.profile.partner;
+    const slot = currentSlot();
+    $("#identityLabel").textContent = cloudStatus.signedIn ? `${ownerLabel(slot)} · personal view` : "Shared preview";
+    $("#myTaskFilter").textContent = `${ownerLabel(slot).split(" ")[0]}'s tasks`;
+  }
+
+  function currentSlot() { return cloudStatus.workspace?.currentMember?.slot || "me"; }
+
+  function renderPeopleDashboard() {
+    const todayDay = new Date().getDay() || 7;
+    [["me", "One"], ["partner", "Two"]].forEach(([owner, suffix]) => {
+      const tasks = state.tasks.filter((task) => !task.completed && (task.owner === owner || task.owner === "both"));
+      const classes = state.timetables.filter((item) => item.owner === owner && item.day === todayDay).sort((a, b) => a.start.localeCompare(b.start));
+      $(`#overviewTasks${suffix}`).textContent = tasks.length;
+      $(`#overviewClasses${suffix}`).textContent = classes.length;
+      $(`#overviewNext${suffix}`).textContent = classes.length ? `Next: ${classes[0].start} · ${classes[0].courseCode || classes[0].title}${classes[0].location ? ` · ${classes[0].location}` : ""}` : "No classes scheduled today";
+    });
   }
 
   function taskRow(task, editable = true) {
@@ -160,7 +197,8 @@
     const query = $("#taskSearch")?.value.trim().toLowerCase() || "";
     return state.tasks.filter((task) => {
       const matchQuery = !query || `${task.title} ${task.details} ${task.category}`.toLowerCase().includes(query);
-      const matchFilter = activeTaskFilter === "all" || (activeTaskFilter === "today" && task.date === today()) || (activeTaskFilter === "mine" && ["me", "both"].includes(task.owner)) || (activeTaskFilter === "completed" && task.completed);
+      const personSlot = activeTaskFilter === "aiman" ? "me" : activeTaskFilter === "abyadina" ? "partner" : currentSlot();
+      const matchFilter = activeTaskFilter === "all" || (activeTaskFilter === "today" && task.date === today()) || (activeTaskFilter === "mine" && [personSlot, "both"].includes(task.owner)) || (activeTaskFilter === "aiman" && ["me", "both"].includes(task.owner)) || (activeTaskFilter === "abyadina" && ["partner", "both"].includes(task.owner)) || (activeTaskFilter === "completed" && task.completed);
       return matchQuery && matchFilter && (activeTaskFilter === "completed" || !task.completed);
     }).sort((a, b) => a.date.localeCompare(b.date));
   }
@@ -186,10 +224,20 @@
     }).join("");
   }
 
+  function renderTimetable() {
+    const dayNames = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+    const todayDay = new Date().getDay() || 7;
+    $("#timetableGrid").innerHTML = dayNames.map((name, index) => {
+      const day = index + 1;
+      const items = state.timetables.filter((item) => item.day === day && (activeTimetableFilter === "all" || item.owner === activeTimetableFilter)).sort((a, b) => a.start.localeCompare(b.start));
+      return `<section class="timetable-day ${day === todayDay ? "today" : ""}"><div class="timetable-day-head">${name}</div><div class="class-list">${items.length ? items.map((item) => `<button class="class-card ${item.owner} ${item.color}" data-class-id="${item.id}"><time>${escapeHtml(item.start)} – ${escapeHtml(item.end)}</time><strong>${escapeHtml(item.courseCode || item.title)}</strong>${item.courseCode ? `<span>${escapeHtml(item.title)}</span>` : ""}<small>${escapeHtml(ownerLabel(item.owner))}${item.location ? ` · ${escapeHtml(item.location)}` : ""}</small></button>`).join("") : `<div class="empty-day">No classes</div>`}</div></section>`;
+    }).join("");
+  }
+
   function filteredNotes() {
     const query = $("#vaultSearch")?.value.trim().toLowerCase() || "";
     return state.notes.filter((note) => {
-      const matchFilter = activeVaultFilter === "all" || note.category === activeVaultFilter;
+      const matchFilter = activeVaultFilter === "all" || note.category === activeVaultFilter || note.visibility === activeVaultFilter;
       const matchQuery = !query || `${note.title} ${note.content} ${note.tags.join(" ")}`.toLowerCase().includes(query);
       return matchFilter && matchQuery;
     }).sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
@@ -197,7 +245,7 @@
 
   function renderVault() {
     const notes = filteredNotes();
-    $("#notesGrid").innerHTML = notes.length ? notes.map((note) => `<button class="note-card" data-note-id="${note.id}"><span class="note-card-top"><span class="category-pill ${note.category}">${escapeHtml(note.category === "plans" ? "plans & dreams" : note.category)}</span><time>${noteAge(note.updatedAt)}</time></span><h3>${escapeHtml(note.title)}</h3><p>${escapeHtml(note.content)}</p><span class="note-tags">${note.tags.map((tag) => `<span>#${escapeHtml(tag)}</span>`).join("")}</span></button>`).join("") : `<div class="empty-state"><span>✦</span><h3>No memories found</h3><p>Capture a thought or try a different search.</p></div>`;
+    $("#notesGrid").innerHTML = notes.length ? notes.map((note) => `<button class="note-card" data-note-id="${note.id}"><span class="note-card-top"><span class="category-pill ${note.category}">${note.visibility === "private" ? "private brain" : "shared brain"}</span><time>${noteAge(note.updatedAt)}</time></span><h3>${escapeHtml(note.title)}</h3><p>${escapeHtml(note.content)}</p><span class="note-tags">${note.tags.map((tag) => `<span>#${escapeHtml(tag)}</span>`).join("")}</span></button>`).join("") : `<div class="empty-state"><span>✦</span><h3>No memories found</h3><p>Capture a thought or try a different search.</p></div>`;
     const allTags = state.notes.flatMap((note) => note.tags);
     const counts = allTags.reduce((acc, tag) => ((acc[tag] = (acc[tag] || 0) + 1), acc), {});
     $("#tagCloud").innerHTML = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([tag]) => `<span>#${escapeHtml(tag)}</span>`).join("") || "<span>No tags yet</span>";
@@ -319,7 +367,7 @@
     $("#taskId").value = task?.id || "";
     $("#taskTitle").value = task?.title || "";
     $("#taskDate").value = task?.date || presetDate || today();
-    $("#taskOwner").value = task?.owner || "me";
+    $("#taskOwner").value = task?.owner || currentSlot();
     $("#taskCategory").value = task?.category || "personal";
     $("#taskPriority").value = task?.priority || "normal";
     $("#taskDetails").value = task?.details || "";
@@ -336,10 +384,28 @@
     $("#noteContent").value = note?.content || "";
     $("#noteCategory").value = note?.category || "personal";
     $("#noteTags").value = note?.tags.join(", ") || "";
+    $("#noteVisibility").value = note?.visibility || "private";
     $("#noteModalTitle").textContent = note ? "Edit this memory" : "Capture a thought";
     $("#deleteNoteBtn").classList.toggle("hidden", !note);
     $("#noteModal").showModal();
     setTimeout(() => $("#noteTitle").focus(), 60);
+  }
+
+  function openTimetable(item = null) {
+    $("#timetableForm").reset();
+    $("#timetableId").value = item?.id || "";
+    $("#classCode").value = item?.courseCode || "";
+    $("#classTitle").value = item?.title || "";
+    $("#classOwner").value = item?.owner || currentSlot();
+    $("#classDay").value = String(item?.day || 1);
+    $("#classStart").value = item?.start || "09:00";
+    $("#classEnd").value = item?.end || "10:00";
+    $("#classLocation").value = item?.location || "";
+    $("#classColor").value = item?.color || (currentSlot() === "me" ? "blue" : "sage");
+    $("#timetableModalTitle").textContent = item ? "Edit this class" : "Add a class";
+    $("#deleteClassBtn").classList.toggle("hidden", !item);
+    $("#timetableModal").showModal();
+    setTimeout(() => $("#classCode").focus(), 60);
   }
 
   function toggleTask(id) {
@@ -436,8 +502,12 @@
     const remote = await window.KinCloud.loadState();
     if (remote) {
       state = remote;
+      state.profile = { ...PEOPLE };
+      state.timetables ||= [];
+      state.notes = state.notes.map((note) => ({ visibility: "shared", ...note }));
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
       renderAll();
+      window.KinCloud.syncState(state).catch(() => {});
     }
   }
 
@@ -466,6 +536,7 @@
     const action = event.target.closest("[data-action]")?.dataset.action;
     if (action === "new-task") openTask();
     if (action === "new-note") openNote();
+    if (action === "new-class") openTimetable();
     if (action === "open-brain") $("#brainModal").showModal();
     const toggle = event.target.closest("[data-toggle-task]");
     if (toggle) { event.stopPropagation(); toggleTask(toggle.dataset.toggleTask); return; }
@@ -473,12 +544,22 @@
     if (taskEl) openTask(state.tasks.find((task) => task.id === taskEl.dataset.taskId));
     const noteEl = event.target.closest("[data-note-id]");
     if (noteEl) openNote(state.notes.find((note) => note.id === noteEl.dataset.noteId));
+    const classEl = event.target.closest("[data-class-id]");
+    if (classEl) openTimetable(state.timetables.find((item) => item.id === classEl.dataset.classId));
     const addDate = event.target.closest("[data-add-date]")?.dataset.addDate;
     if (addDate) openTask(null, addDate);
     const suggestion = event.target.closest("[data-prompt]")?.dataset.prompt;
     if (suggestion) askBrain(suggestion);
     const taskFilter = event.target.closest("[data-task-filter]")?.dataset.taskFilter;
     if (taskFilter) { activeTaskFilter = taskFilter; $$("[data-task-filter]").forEach((el) => el.classList.toggle("active", el.dataset.taskFilter === taskFilter)); renderTaskBoard(); }
+    const personTasks = event.target.closest("[data-person-tasks]")?.dataset.personTasks;
+    if (personTasks) {
+      activeTaskFilter = personTasks === "me" ? "aiman" : "abyadina";
+      $$("[data-task-filter]").forEach((el) => el.classList.toggle("active", el.dataset.taskFilter === activeTaskFilter));
+      navigate("tasks"); renderTaskBoard();
+    }
+    const timetableFilter = event.target.closest("[data-timetable-filter]")?.dataset.timetableFilter;
+    if (timetableFilter) { activeTimetableFilter = timetableFilter; $$("[data-timetable-filter]").forEach((el) => el.classList.toggle("active", el.dataset.timetableFilter === timetableFilter)); renderTimetable(); }
     const vaultFilter = event.target.closest("[data-vault-filter]")?.dataset.vaultFilter;
     if (vaultFilter) { activeVaultFilter = vaultFilter; navigate("vault"); $$("[data-vault-filter]").forEach((el) => el.classList.toggle("active", el.dataset.vaultFilter === vaultFilter)); renderVault(); }
     const result = event.target.closest("[data-search-kind]");
@@ -506,16 +587,29 @@
   $("#noteForm").addEventListener("submit", (event) => {
     event.preventDefault();
     const id = $("#noteId").value;
-    const data = { title: $("#noteTitle").value.trim(), content: $("#noteContent").value.trim(), category: $("#noteCategory").value, tags: $("#noteTags").value.split(",").map((tag) => tag.trim().replace(/^#/, "")).filter(Boolean), updatedAt: new Date().toISOString() };
+    const data = { title: $("#noteTitle").value.trim(), content: $("#noteContent").value.trim(), category: $("#noteCategory").value, tags: $("#noteTags").value.split(",").map((tag) => tag.trim().replace(/^#/, "")).filter(Boolean), visibility: $("#noteVisibility").value, updatedAt: new Date().toISOString() };
     if (!data.title || !data.content) return;
     if (id) Object.assign(state.notes.find((note) => note.id === id), data);
     else state.notes.push({ id: uid(), ...data, createdAt: new Date().toISOString() });
     $("#noteModal").close();
-    saveState(id ? "Memory updated." : "Saved to your shared brain.");
+    saveState(id ? "Memory updated." : data.visibility === "private" ? `Saved to ${ownerLabel(currentSlot())}'s private Brain.` : "Saved to your shared Brain.");
+  });
+
+  $("#timetableForm").addEventListener("submit", (event) => {
+    event.preventDefault();
+    const id = $("#timetableId").value;
+    const data = { courseCode: $("#classCode").value.trim(), title: $("#classTitle").value.trim(), owner: $("#classOwner").value, day: Number($("#classDay").value), start: $("#classStart").value, end: $("#classEnd").value, location: $("#classLocation").value.trim(), color: $("#classColor").value };
+    if (!data.title || !data.start || !data.end) return;
+    if (data.end <= data.start) { toast("The class end time must be after its start time."); return; }
+    if (id) Object.assign(state.timetables.find((item) => item.id === id), data);
+    else state.timetables.push({ id: uid(), ...data, createdAt: new Date().toISOString() });
+    $("#timetableModal").close();
+    saveState(id ? "Class updated." : `Class added to ${ownerLabel(data.owner)}'s timetable.`);
   });
 
   $("#deleteTaskBtn").addEventListener("click", () => { const id = $("#taskId").value; if (cloudStatus.workspace) window.KinCloud.remove("tasks", id).catch((error) => toast(error.message)); state.tasks = state.tasks.filter((task) => task.id !== id); $("#taskModal").close(); saveState("Task deleted."); });
   $("#deleteNoteBtn").addEventListener("click", () => { const id = $("#noteId").value; if (cloudStatus.workspace) window.KinCloud.remove("notes", id).catch((error) => toast(error.message)); state.notes = state.notes.filter((note) => note.id !== id); $("#noteModal").close(); saveState("Memory removed from the vault."); });
+  $("#deleteClassBtn").addEventListener("click", () => { const id = $("#timetableId").value; if (cloudStatus.workspace) window.KinCloud.remove("timetables", id).catch((error) => toast(error.message)); state.timetables = state.timetables.filter((item) => item.id !== id); $("#timetableModal").close(); saveState("Class removed from the timetable."); });
   $("#taskSearch").addEventListener("input", renderTaskBoard);
   $("#vaultSearch").addEventListener("input", renderVault);
   $("#globalSearch").addEventListener("input", renderGlobalSearch);
@@ -589,6 +683,6 @@
   $$("dialog").forEach((dialog) => dialog.addEventListener("click", (event) => { if (event.target === dialog) dialog.close(); }));
   renderAll();
   const initialView = location.hash.slice(1);
-  if (["home", "tasks", "week", "vault", "graph"].includes(initialView)) navigate(initialView);
+  if (["home", "tasks", "week", "timetable", "vault", "graph"].includes(initialView)) navigate(initialView);
   initCloud();
 })();

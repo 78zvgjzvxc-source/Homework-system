@@ -17,6 +17,8 @@ create table if not exists public.workspace_members (
   workspace_id uuid not null references public.workspaces(id) on delete cascade,
   user_id uuid not null references auth.users(id) on delete cascade,
   role text not null default 'member' check (role in ('owner', 'member')),
+  member_slot text not null check (member_slot in ('me', 'partner')),
+  display_name text not null,
   joined_at timestamptz not null default now(),
   primary key (workspace_id, user_id)
 );
@@ -41,19 +43,38 @@ create table if not exists public.notes (
   content text not null,
   category text not null default 'personal',
   tags text[] not null default '{}',
+  owner_id uuid references auth.users(id) on delete set null,
+  visibility text not null default 'shared' check (visibility in ('private', 'shared')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
+);
+
+create table if not exists public.timetables (
+  id text primary key,
+  workspace_id uuid not null references public.workspaces(id) on delete cascade,
+  owner_key text not null check (owner_key in ('me', 'partner')),
+  course_code text not null default '',
+  title text not null,
+  day_of_week smallint not null check (day_of_week between 1 and 7),
+  start_time time not null,
+  end_time time not null,
+  location text not null default '',
+  color text not null default 'blue',
+  created_at timestamptz not null default now(),
+  check (end_time > start_time)
 );
 
 create index if not exists workspace_members_user_idx on public.workspace_members(user_id);
 create index if not exists tasks_workspace_idx on public.tasks(workspace_id);
 create index if not exists tasks_due_date_idx on public.tasks(workspace_id, due_date);
 create index if not exists notes_workspace_idx on public.notes(workspace_id);
+create index if not exists timetables_workspace_idx on public.timetables(workspace_id, owner_key, day_of_week);
 
 alter table public.workspaces enable row level security;
 alter table public.workspace_members enable row level security;
 alter table public.tasks enable row level security;
 alter table public.notes enable row level security;
+alter table public.timetables enable row level security;
 
 -- SECURITY DEFINER avoids recursive policies on workspace_members.
 create or replace function public.is_kin_workspace_member(target_workspace uuid)
@@ -94,13 +115,22 @@ drop policy if exists "members delete tasks" on public.tasks;
 create policy "members delete tasks" on public.tasks for delete to authenticated using (public.is_kin_workspace_member(workspace_id));
 
 drop policy if exists "members read notes" on public.notes;
-create policy "members read notes" on public.notes for select to authenticated using (public.is_kin_workspace_member(workspace_id));
+create policy "members read notes" on public.notes for select to authenticated using (public.is_kin_workspace_member(workspace_id) and (visibility = 'shared' or owner_id = (select auth.uid())));
 drop policy if exists "members add notes" on public.notes;
-create policy "members add notes" on public.notes for insert to authenticated with check (public.is_kin_workspace_member(workspace_id));
+create policy "members add notes" on public.notes for insert to authenticated with check (public.is_kin_workspace_member(workspace_id) and (visibility = 'shared' or owner_id = (select auth.uid())));
 drop policy if exists "members update notes" on public.notes;
-create policy "members update notes" on public.notes for update to authenticated using (public.is_kin_workspace_member(workspace_id)) with check (public.is_kin_workspace_member(workspace_id));
+create policy "members update notes" on public.notes for update to authenticated using (public.is_kin_workspace_member(workspace_id) and (visibility = 'shared' or owner_id = (select auth.uid()))) with check (public.is_kin_workspace_member(workspace_id) and (visibility = 'shared' or owner_id = (select auth.uid())));
 drop policy if exists "members delete notes" on public.notes;
-create policy "members delete notes" on public.notes for delete to authenticated using (public.is_kin_workspace_member(workspace_id));
+create policy "members delete notes" on public.notes for delete to authenticated using (public.is_kin_workspace_member(workspace_id) and (visibility = 'shared' or owner_id = (select auth.uid())));
+
+drop policy if exists "members read timetables" on public.timetables;
+create policy "members read timetables" on public.timetables for select to authenticated using (public.is_kin_workspace_member(workspace_id));
+drop policy if exists "members add timetables" on public.timetables;
+create policy "members add timetables" on public.timetables for insert to authenticated with check (public.is_kin_workspace_member(workspace_id));
+drop policy if exists "members update timetables" on public.timetables;
+create policy "members update timetables" on public.timetables for update to authenticated using (public.is_kin_workspace_member(workspace_id)) with check (public.is_kin_workspace_member(workspace_id));
+drop policy if exists "members delete timetables" on public.timetables;
+create policy "members delete timetables" on public.timetables for delete to authenticated using (public.is_kin_workspace_member(workspace_id));
 
 -- Authenticated users call this instead of inserting privileged membership rows directly.
 create or replace function public.create_kin_workspace(workspace_name text, first_name text, second_name text)
@@ -119,7 +149,7 @@ begin
   insert into public.workspaces(name, name_one, name_two, created_by)
   values (coalesce(nullif(trim(workspace_name), ''), 'Our Kin'), left(trim(first_name), 30), left(trim(second_name), 30), auth.uid())
   returning id into new_workspace;
-  insert into public.workspace_members(workspace_id, user_id, role) values (new_workspace, auth.uid(), 'owner');
+  insert into public.workspace_members(workspace_id, user_id, role, member_slot, display_name) values (new_workspace, auth.uid(), 'owner', 'me', left(trim(first_name), 30));
   return new_workspace;
 end;
 $$;
@@ -142,7 +172,8 @@ begin
   if exists (select 1 from public.workspace_members where user_id = auth.uid()) then
     raise exception 'This account already belongs to a Kin workspace';
   end if;
-  insert into public.workspace_members(workspace_id, user_id, role) values (target, auth.uid(), 'member');
+  insert into public.workspace_members(workspace_id, user_id, role, member_slot, display_name)
+  select target, auth.uid(), 'member', 'partner', name_two from public.workspaces where id = target;
   return target;
 end;
 $$;
@@ -160,5 +191,8 @@ begin
   end if;
   if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'notes') then
     alter publication supabase_realtime add table public.notes;
+  end if;
+  if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'timetables') then
+    alter publication supabase_realtime add table public.timetables;
   end if;
 end $$;

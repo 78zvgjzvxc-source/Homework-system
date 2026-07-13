@@ -10,15 +10,18 @@
 
   const check = ({ data, error }) => { if (error) throw error; return data; };
   const taskToRow = (task) => ({ id: task.id, workspace_id: workspace.id, title: task.title, details: task.details || "", due_date: task.date, owner_key: task.owner, category: task.category, priority: task.priority, completed: task.completed, created_at: task.createdAt });
-  const noteToRow = (note) => ({ id: note.id, workspace_id: workspace.id, title: note.title, content: note.content, category: note.category, tags: note.tags || [], created_at: note.createdAt, updated_at: note.updatedAt });
+  const noteToRow = (note) => ({ id: note.id, workspace_id: workspace.id, title: note.title, content: note.content, category: note.category, tags: note.tags || [], owner_id: note.visibility === "private" ? session.user.id : null, visibility: note.visibility || "shared", created_at: note.createdAt, updated_at: note.updatedAt });
+  const timetableToRow = (item) => ({ id: item.id, workspace_id: workspace.id, owner_key: item.owner, course_code: item.courseCode || "", title: item.title, day_of_week: item.day, start_time: item.start, end_time: item.end, location: item.location || "", color: item.color || "blue", created_at: item.createdAt });
   const rowToTask = (row) => ({ id: row.id, title: row.title, details: row.details || "", date: row.due_date, owner: row.owner_key, category: row.category, priority: row.priority, completed: row.completed, createdAt: row.created_at });
-  const rowToNote = (row) => ({ id: row.id, title: row.title, content: row.content, category: row.category, tags: row.tags || [], createdAt: row.created_at, updatedAt: row.updated_at });
+  const rowToNote = (row) => ({ id: row.id, title: row.title, content: row.content, category: row.category, tags: row.tags || [], ownerId: row.owner_id, visibility: row.visibility || "shared", createdAt: row.created_at, updatedAt: row.updated_at });
+  const rowToTimetable = (row) => ({ id: row.id, owner: row.owner_key, courseCode: row.course_code || "", title: row.title, day: row.day_of_week, start: String(row.start_time).slice(0, 5), end: String(row.end_time).slice(0, 5), location: row.location || "", color: row.color || "blue", createdAt: row.created_at });
 
   async function findWorkspace() {
     if (!session) return null;
-    const memberships = check(await client.from("workspace_members").select("workspace_id").eq("user_id", session.user.id).limit(1));
+    const memberships = check(await client.from("workspace_members").select("workspace_id,member_slot,display_name").eq("user_id", session.user.id).limit(1));
     if (!memberships.length) { workspace = null; return null; }
     workspace = check(await client.from("workspaces").select("id,name,invite_code,name_one,name_two").eq("id", memberships[0].workspace_id).single());
+    workspace.currentMember = { slot: memberships[0].member_slot, displayName: memberships[0].display_name, userId: session.user.id };
     return workspace;
   }
 
@@ -70,11 +73,12 @@
 
   async function loadState() {
     if (!workspace) return null;
-    const [tasks, notes] = await Promise.all([
+    const [tasks, notes, timetables] = await Promise.all([
       client.from("tasks").select("*").eq("workspace_id", workspace.id).order("due_date"),
-      client.from("notes").select("*").eq("workspace_id", workspace.id).order("updated_at", { ascending: false })
+      client.from("notes").select("*").eq("workspace_id", workspace.id).order("updated_at", { ascending: false }),
+      client.from("timetables").select("*").eq("workspace_id", workspace.id).order("day_of_week").order("start_time")
     ]);
-    return { profile: { name: workspace.name_one, partner: workspace.name_two }, tasks: check(tasks).map(rowToTask), notes: check(notes).map(rowToNote) };
+    return { profile: { name: workspace.name_one, partner: workspace.name_two }, tasks: check(tasks).map(rowToTask), notes: check(notes).map(rowToNote), timetables: check(timetables).map(rowToTimetable) };
   }
 
   async function syncState(state) {
@@ -82,13 +86,14 @@
     const operations = [];
     if (state.tasks.length) operations.push(client.from("tasks").upsert(state.tasks.map(taskToRow)));
     if (state.notes.length) operations.push(client.from("notes").upsert(state.notes.map(noteToRow)));
+    if (state.timetables?.length) operations.push(client.from("timetables").upsert(state.timetables.map(timetableToRow)));
     operations.push(client.from("workspaces").update({ name_one: state.profile.name, name_two: state.profile.partner }).eq("id", workspace.id));
     const results = await Promise.all(operations);
     results.forEach(check);
   }
 
   async function remove(kind, id) {
-    if (!workspace || !["tasks", "notes"].includes(kind)) return;
+    if (!workspace || !["tasks", "notes", "timetables"].includes(kind)) return;
     check(await client.from(kind).delete().eq("workspace_id", workspace.id).eq("id", id));
   }
 
@@ -98,6 +103,7 @@
     channel = client.channel(`kin-${workspace.id}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "tasks", filter: `workspace_id=eq.${workspace.id}` }, onChange)
       .on("postgres_changes", { event: "*", schema: "public", table: "notes", filter: `workspace_id=eq.${workspace.id}` }, onChange)
+      .on("postgres_changes", { event: "*", schema: "public", table: "timetables", filter: `workspace_id=eq.${workspace.id}` }, onChange)
       .subscribe();
   }
 

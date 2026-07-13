@@ -28,6 +28,21 @@ The website automatically uses local storage until Supabase is configured. Once 
 - Live updates between both users with Supabase Realtime
 - Interactive knowledge graph generated from notes, tags, spaces, and tasks
 - Knowledge graph export as JSON or SVG
+- Identity-aware personal task views for Aiman Firdaus and Abyadina Irisha
+- A combined dashboard showing both workloads and today's classes
+- Separate weekly timetables with a shared comparison view
+- Private personal-Brain memories protected by RLS, plus shared-Brain memories
+
+## Upgrade an existing database to the two-person model
+
+If the original Kin schema was already run, open Supabase **SQL Editor**, paste the entire contents of `supabase/v2_two_people.sql`, and click **Run** once. This preserves existing tasks and notes while adding:
+
+- Identity slots for Aiman Firdaus and Abyadina Irisha
+- Private/shared note visibility and ownership
+- The timetable table and its security policies
+- Realtime updates for timetable changes
+
+After the migration succeeds, refresh the deployed Render site. The account that originally created the workspace is assigned to Aiman's interface; the account that joins with the invite code is assigned to Abyadina's interface. Existing notes remain shared unless changed to private.
 
 ## Connect Supabase
 
