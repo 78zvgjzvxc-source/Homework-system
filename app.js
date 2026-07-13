@@ -1,4 +1,4 @@
-/* Kin prototype — local-first shared task and memory space. */
+/* HoneyButter — local-first shared task and memory space. */
 (function () {
   "use strict";
 
@@ -188,7 +188,7 @@
       const el = $(`#presence${suffix}`);
       if (!el) return;
       el.classList.toggle("offline", !member);
-      el.innerHTML = `<i></i>${member ? `Online · Viewing ${escapeHtml(viewNames[member.view] || "Kin")}` : "Offline"}`;
+      el.innerHTML = `<i></i>${member ? `Online · Viewing ${escapeHtml(viewNames[member.view] || "HoneyButter")}` : "Offline"}`;
     });
   }
 
@@ -338,7 +338,7 @@
 
   function renderActivity() {
     const items = state.activities || [];
-    $("#activityList").innerHTML = items.length ? items.map((item) => `<div class="activity-row"><span class="assistant-avatar">${escapeHtml(item.actor?.charAt(0) || "K")}</span><span><strong>${escapeHtml(item.message)}</strong><span>${escapeHtml(item.actor || "Kin")}</span></span><time>${noteAge(item.createdAt)}</time></div>`).join("") : `<div class="empty-state"><span>◷</span><h3>No activity yet</h3><p>Changes made by either person will appear here.</p></div>`;
+    $("#activityList").innerHTML = items.length ? items.map((item) => `<div class="activity-row"><span class="assistant-avatar">${escapeHtml(item.actor?.charAt(0) || "H")}</span><span><strong>${escapeHtml(item.message)}</strong><span>${escapeHtml(item.actor || "HoneyButter")}</span></span><time>${noteAge(item.createdAt)}</time></div>`).join("") : `<div class="empty-state"><span>◷</span><h3>No activity yet</h3><p>Changes made by either person will appear here.</p></div>`;
   }
 
   function parseIcs(text) {
@@ -359,8 +359,8 @@
   function exportIcs() {
     const dayCodes = ["", "MO", "TU", "WE", "TH", "FR", "SA", "SU"];
     const stamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
-    const events = state.timetables.filter((item) => item.owner === currentSlot()).map((item) => `BEGIN:VEVENT\r\nUID:${item.id}@kin\r\nDTSTAMP:${stamp}\r\nDTSTART:20260713T${item.start.replace(":", "")}00\r\nDTEND:20260713T${item.end.replace(":", "")}00\r\nRRULE:FREQ=WEEKLY;BYDAY=${dayCodes[item.day]}\r\nSUMMARY:${(item.courseCode ? `${item.courseCode} - ` : "")}${item.title}\r\nLOCATION:${item.location || ""}\r\nEND:VEVENT`).join("\r\n");
-    downloadFile("kin-timetable.ics", `BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Kin//Timetable//EN\r\n${events}\r\nEND:VCALENDAR`, "text/calendar");
+    const events = state.timetables.filter((item) => item.owner === currentSlot()).map((item) => `BEGIN:VEVENT\r\nUID:${item.id}@honeybutter\r\nDTSTAMP:${stamp}\r\nDTSTART:20260713T${item.start.replace(":", "")}00\r\nDTEND:20260713T${item.end.replace(":", "")}00\r\nRRULE:FREQ=WEEKLY;BYDAY=${dayCodes[item.day]}\r\nSUMMARY:${(item.courseCode ? `${item.courseCode} - ` : "")}${item.title}\r\nLOCATION:${item.location || ""}\r\nEND:VEVENT`).join("\r\n");
+    downloadFile("honeybutter-timetable.ics", `BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//HoneyButter//Timetable//EN\r\n${events}\r\nEND:VCALENDAR`, "text/calendar");
     toast("Timetable exported for Google Calendar or Apple Calendar.");
   }
 
@@ -403,7 +403,7 @@
   }
 
   function buildGraphData() {
-    const nodes = [{ id: "root", type: "root", label: "Our Kin", body: "Your shared second brain" }];
+    const nodes = [{ id: "root", type: "root", label: "HoneyButter", body: "Your shared second brain" }];
     const edges = [];
     const known = new Set(["root"]);
     const edgeKeys = new Set();
@@ -490,7 +490,7 @@
 
   function exportGraphJson() {
     const clean = { generatedAt: new Date().toISOString(), nodes: graphData.nodes.map(({ x, y, ...node }) => node), edges: graphData.edges };
-    downloadFile("kin-knowledge-graph.json", JSON.stringify(clean, null, 2), "application/json");
+    downloadFile("honeybutter-knowledge-graph.json", JSON.stringify(clean, null, 2), "application/json");
     toast("Knowledge graph exported as JSON.");
   }
 
@@ -500,7 +500,7 @@
     const style = document.createElementNS("http://www.w3.org/2000/svg", "style");
     style.textContent = `.graph-edge{stroke:#d8d4ca;stroke-width:1.2}.graph-node circle{stroke:#fff;stroke-width:2.5}.graph-node text{fill:#5e5b53;font:500 9px sans-serif;text-anchor:middle}.memory circle{fill:#e88469}.tag circle{fill:#8ca0b7}.task circle{fill:#c49d66}.space circle{fill:#8da58f}.root circle{fill:#1b1c18}`;
     clone.prepend(style);
-    downloadFile("kin-knowledge-graph.svg", new XMLSerializer().serializeToString(clone), "image/svg+xml");
+    downloadFile("honeybutter-knowledge-graph.svg", new XMLSerializer().serializeToString(clone), "image/svg+xml");
     toast("Knowledge graph exported as SVG.");
   }
 

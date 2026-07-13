@@ -2,7 +2,7 @@ services:
   - type: web
     name: kin-shared-workspace
     runtime: static
-    buildCommand: echo "Kin is a static site; no build step required."
+    buildCommand: echo "HoneyButter is a static site; no build step required."
     staticPublishPath: ./
     autoDeployTrigger: commit
     headers:

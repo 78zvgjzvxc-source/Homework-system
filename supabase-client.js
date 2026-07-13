@@ -1,4 +1,4 @@
-/* Supabase data adapter. The rest of Kin keeps working locally when unconfigured. */
+/* Supabase data adapter. HoneyButter keeps working locally when unconfigured. */
 (function () {
   "use strict";
   const config = window.KIN_SUPABASE_CONFIG || {};
@@ -70,7 +70,7 @@
   }
 
   async function createWorkspace(profile) {
-    const data = check(await client.rpc("create_kin_workspace", { workspace_name: "Our Kin", first_name: profile.name, second_name: profile.partner }));
+    const data = check(await client.rpc("create_kin_workspace", { workspace_name: "HoneyButter", first_name: profile.name, second_name: profile.partner }));
     await findWorkspace();
     return data;
   }

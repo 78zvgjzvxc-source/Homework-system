@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#171713">
-  <title>Kin — your shared second brain</title>
+  <title>HoneyButter — your shared second brain</title>
   <meta name="description" content="A calm shared workspace for tasks, plans, memories, and AI-assisted thinking.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,10 +14,10 @@
 <body>
   <section class="auth-gate" id="authGate" aria-labelledby="authTitle">
     <div class="auth-visual">
-      <a class="auth-brand" href="#" aria-label="Kin home"><span class="brand-mark"><svg viewBox="0 0 32 32"><path d="M8.5 6.5v19M23.5 6.5v19M9 16h14M10 7l13 18M22 7 9 25"/></svg></span><span>kin</span></a>
+      <a class="auth-brand" href="#" aria-label="HoneyButter home"><span class="brand-mark"><svg viewBox="0 0 32 32"><path d="M8.5 6.5v19M23.5 6.5v19M9 16h14M10 7l13 18M22 7 9 25"/></svg></span><span>HoneyButter</span></a>
       <div class="auth-visual-copy"><span class="auth-kicker">YOUR SHARED SECOND BRAIN</span><h2>Two lives.<br>One calm place.</h2><p>Keep your own tasks, courses, timetable, and private Brain—while staying connected to the person who matters.</p></div>
       <div class="auth-orbit" aria-hidden="true"><span class="orbit-person one">A</span><span class="orbit-line"></span><span class="orbit-heart">♥</span><span class="orbit-person two">A</span></div>
-      <p class="auth-trust">Private memories stay private. Shared work stays in your Kin workspace.</p>
+      <p class="auth-trust">Private memories stay private. Shared work stays in your HoneyButter workspace.</p>
     </div>
     <div class="auth-form-side">
       <div class="auth-card">
@@ -34,7 +34,7 @@
           <div class="login-error hidden" id="loginError" role="alert"></div>
           <button type="submit" class="primary-button login-submit"><span>Sign in as Aiman</span><svg viewBox="0 0 24 24"><path d="M5 12h14M14 7l5 5-5 5"/></svg></button>
         </form>
-        <div class="login-divider"><span>New to Kin?</span></div>
+        <div class="login-divider"><span>New to HoneyButter?</span></div>
         <button type="button" class="secondary-button login-create" id="loginCreateAccount">Create an account</button>
         <button type="button" class="text-button login-preview hidden" id="localPreviewBtn">Continue with a local preview</button>
         <p class="login-footnote">The profile choice does not bypass security. Each person signs in with a separate Supabase account.</p>
@@ -49,7 +49,7 @@
           <span class="brand-mark" aria-hidden="true">
             <svg viewBox="0 0 32 32"><path d="M8.5 6.5v19M23.5 6.5v19M9 16h14M10 7l13 18M22 7 9 25"/></svg>
           </span>
-          <span>kin</span>
+          <span>HoneyButter</span>
         </button>
         <button class="icon-button sidebar-close" id="sidebarClose" aria-label="Close navigation">
           <svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg>
@@ -115,7 +115,7 @@
         <button class="icon-button menu-button" id="menuButton" aria-label="Open navigation">
           <svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
         </button>
-        <div class="mobile-brand">kin</div>
+        <div class="mobile-brand">HoneyButter</div>
         <div class="topbar-actions">
           <div class="identity-pill" id="identityPill"><span class="identity-dot"></span><span id="identityLabel">Shared view</span></div>
           <button class="search-trigger" id="searchTrigger">
@@ -212,7 +212,7 @@
       <section class="view" id="coursesView" data-view="courses">
         <div class="page-wrap">
           <div class="page-title-row"><div><p class="eyebrow">COURSES, ASSIGNMENTS, AND WORKLOAD</p><h1>Course hub</h1><p class="subhead">Connect every task, document, and class to the course it belongs to.</p></div><button class="primary-button" data-action="new-course"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Add course</button></div>
-          <div class="course-layout"><div class="course-grid" id="courseGrid"></div><aside class="smart-plan-panel"><span class="insight-mark">✦</span><h3>Smart study plan</h3><p>Kin ranks upcoming work using deadlines, priority, and estimated effort.</p><button class="primary-button full" id="generatePlanBtn">Generate my plan</button><div class="smart-plan-list" id="smartPlanList"></div></aside></div>
+          <div class="course-layout"><div class="course-grid" id="courseGrid"></div><aside class="smart-plan-panel"><span class="insight-mark">✦</span><h3>Smart study plan</h3><p>HoneyButter ranks upcoming work using deadlines, priority, and estimated effort.</p><button class="primary-button full" id="generatePlanBtn">Generate my plan</button><div class="smart-plan-list" id="smartPlanList"></div></aside></div>
         </div>
       </section>
 
@@ -282,7 +282,7 @@
       <div class="modal-header"><div><span class="modal-kicker">VAULT NOTE</span><h2 id="noteModalTitle">Capture a thought</h2></div><button class="icon-button modal-close" value="cancel" aria-label="Close"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>
       <input type="hidden" id="noteId">
       <label class="field"><span>Title</span><input id="noteTitle" required maxlength="100" placeholder="Give this memory a name"></label>
-      <label class="field"><span>What do you want to remember?</span><textarea id="noteContent" required rows="8" placeholder="Write freely. Kin will make it searchable..."></textarea></label>
+      <label class="field"><span>What do you want to remember?</span><textarea id="noteContent" required rows="8" placeholder="Write freely. HoneyButter will make it searchable..."></textarea></label>
       <div class="field-row">
         <label class="field"><span>Space</span><select id="noteCategory"><option value="personal">Personal</option><option value="study">Study</option><option value="plans">Plans & dreams</option></select></label>
         <label class="field"><span>Tags</span><input id="noteTags" placeholder="travel, idea, important"></label>
@@ -306,7 +306,7 @@
 
   <dialog class="modal brain-dialog" id="brainModal">
     <div class="brain-panel">
-      <div class="brain-modal-top"><div><span class="status-pill"><i></i> Searching your accessible Brain</span><h2>Ask Kin</h2></div><button class="icon-button brain-close" id="brainClose" aria-label="Close"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>
+      <div class="brain-modal-top"><div><span class="status-pill"><i></i> Searching your accessible Brain</span><h2>Ask HoneyButter</h2></div><button class="icon-button brain-close" id="brainClose" aria-label="Close"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>
       <div class="chat-stream" id="chatStream"><div class="assistant-message"><span class="assistant-avatar">✦</span><div><p>I can use everything in your tasks and vault to help you remember, plan, and connect ideas.</p><small>Try asking “What should we focus on this week?”</small></div></div></div>
       <form class="chat-form" id="chatForm"><textarea id="chatInput" rows="1" placeholder="Ask about your plans, tasks, or memories..."></textarea><button aria-label="Send"><svg viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></svg></button></form>
       <p class="privacy-note"><svg viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>Only memories accessible to the signed-in person are used.</p>
@@ -325,7 +325,7 @@
 
   <dialog class="modal" id="cloudModal">
     <div class="modal-panel cloud-panel">
-      <div class="modal-header"><div><span class="modal-kicker">SUPABASE CLOUD</span><h2>Share your Kin workspace</h2></div><button class="icon-button modal-close" id="cloudClose" aria-label="Close"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>
+      <div class="modal-header"><div><span class="modal-kicker">SUPABASE CLOUD</span><h2>Share your HoneyButter workspace</h2></div><button class="icon-button modal-close" id="cloudClose" aria-label="Close"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>
       <div id="cloudNotConfigured" class="cloud-state">
         <div class="info-box"><strong>One small configuration step remains</strong><p>Copy your Supabase Project URL and publishable key into <code>supabase-config.js</code>, then refresh this page. Never use the service-role secret here.</p></div>
       </div>

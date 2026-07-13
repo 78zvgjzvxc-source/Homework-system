@@ -1,11 +1,11 @@
--- Kin database schema
+-- HoneyButter database schema
 -- Run this entire file once in Supabase Dashboard → SQL Editor.
 
 create extension if not exists pgcrypto;
 
 create table if not exists public.workspaces (
   id uuid primary key default gen_random_uuid(),
-  name text not null default 'Our Kin',
+  name text not null default 'HoneyButter',
   invite_code text not null unique default upper(encode(gen_random_bytes(5), 'hex')),
   name_one text not null default 'Me',
   name_two text not null default 'My person',
@@ -144,10 +144,10 @@ declare
 begin
   if auth.uid() is null then raise exception 'Authentication required'; end if;
   if exists (select 1 from public.workspace_members where user_id = auth.uid()) then
-    raise exception 'This account already belongs to a Kin workspace';
+    raise exception 'This account already belongs to a HoneyButter workspace';
   end if;
   insert into public.workspaces(name, name_one, name_two, created_by)
-  values (coalesce(nullif(trim(workspace_name), ''), 'Our Kin'), left(trim(first_name), 30), left(trim(second_name), 30), auth.uid())
+  values (coalesce(nullif(trim(workspace_name), ''), 'HoneyButter'), left(trim(first_name), 30), left(trim(second_name), 30), auth.uid())
   returning id into new_workspace;
   insert into public.workspace_members(workspace_id, user_id, role, member_slot, display_name) values (new_workspace, auth.uid(), 'owner', 'me', left(trim(first_name), 30));
   return new_workspace;
@@ -167,10 +167,10 @@ begin
   select id into target from public.workspaces where invite_code = upper(trim(code));
   if target is null then raise exception 'Invite code not found'; end if;
   if (select count(*) from public.workspace_members where workspace_id = target) >= 2 then
-    raise exception 'This Kin workspace already has two members';
+    raise exception 'This HoneyButter workspace already has two members';
   end if;
   if exists (select 1 from public.workspace_members where user_id = auth.uid()) then
-    raise exception 'This account already belongs to a Kin workspace';
+    raise exception 'This account already belongs to a HoneyButter workspace';
   end if;
   insert into public.workspace_members(workspace_id, user_id, role, member_slot, display_name)
   select target, auth.uid(), 'member', 'partner', name_two from public.workspaces where id = target;

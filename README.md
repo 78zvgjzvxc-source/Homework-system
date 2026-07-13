@@ -1,6 +1,6 @@
-# Kin — shared tasks and second brain
+# HoneyButter — shared tasks and second brain
 
-Kin is a local-first prototype for a private shared workspace. It combines daily and weekly task planning with a searchable knowledge vault and a retrieval-based “Brain” chat.
+HoneyButter is a local-first prototype for a private shared workspace. It combines daily and weekly task planning with a searchable knowledge vault and a retrieval-based “Brain” chat.
 
 ## Run it
 
@@ -27,7 +27,7 @@ The website automatically uses local storage until Supabase is configured. Once 
 - Supabase email authentication and secure two-person workspaces
 - A dedicated two-profile login page with safe on-device account switching
 - Live updates between both users with Supabase Realtime
-- Live presence showing whether each person is online and which Kin section they are viewing
+- Live presence showing whether each person is online and which HoneyButter section they are viewing
 - Interactive knowledge graph generated from notes, tags, spaces, and tasks
 - Knowledge graph export as JSON or SVG
 - Identity-aware personal task views for Aiman Firdaus and Abyadina Irisha
@@ -39,11 +39,11 @@ The website automatically uses local storage until Supabase is configured. Once 
 
 Aiman and Abyadina each create and use a separate Supabase email/password account. Choosing a person on the login page changes the interface label only; it never bypasses authentication or stores the other person's password. Use the top-right account menu and **Switch account** to sign out locally and return to the two-person login page. Other signed-in devices remain connected.
 
-Once both accounts belong to the same Kin workspace, the shared dashboard shows online/offline presence and the section each person is viewing. Detailed changes also appear in Activity history. Private Brain note contents remain visible only to their owner.
+Once both accounts belong to the same HoneyButter workspace, the shared dashboard shows online/offline presence and the section each person is viewing. Detailed changes also appear in Activity history. Private Brain note contents remain visible only to their owner.
 
 ## Upgrade an existing database to the two-person model
 
-If the original Kin schema was already run, open Supabase **SQL Editor**, paste the entire contents of `supabase/v2_two_people.sql`, and click **Run** once. This preserves existing tasks and notes while adding:
+If the original HoneyButter schema was already run, open Supabase **SQL Editor**, paste the entire contents of `supabase/v2_two_people.sql`, and click **Run** once. This preserves existing tasks and notes while adding:
 
 - Identity slots for Aiman Firdaus and Abyadina Irisha
 - Private/shared note visibility and ownership
@@ -80,7 +80,7 @@ supabase functions deploy brain
 supabase functions deploy ingest
 ```
 
-The function source lives in `supabase/functions/brain/index.ts` and `supabase/functions/ingest/index.ts`. The Brain uses the OpenAI Responses API with only the notes, tasks, courses, and timetable rows already accessible to the signed-in person. If the function or key is unavailable, Kin automatically falls back to its local grounded retrieval instead of breaking chat.
+The function source lives in `supabase/functions/brain/index.ts` and `supabase/functions/ingest/index.ts`. The Brain uses the OpenAI Responses API with only the notes, tasks, courses, and timetable rows already accessible to the signed-in person. If the function or key is unavailable, HoneyButter automatically falls back to its local grounded retrieval instead of breaking chat.
 
 Image uploads use the protected ingestion function for OCR and factual summarization. Audio uploads use protected transcription. PDFs, Markdown, CSV, and text files are extracted in the browser and saved as private Brain memories by default.
 
@@ -121,7 +121,7 @@ If email confirmation is enabled in Supabase, each person must click the confirm
 
 ## Knowledge graph
 
-Open **Knowledge graph** in the sidebar. Kin creates nodes for:
+Open **Knowledge graph** in the sidebar. HoneyButter creates nodes for:
 
 - Vault memories
 - Tags extracted from those memories

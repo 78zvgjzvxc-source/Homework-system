@@ -17,7 +17,7 @@ Deno.serve(async (request) => {
         model: "gpt-5.6-luna",
         reasoning: { effort: "low" },
         max_output_tokens: 1400,
-        instructions: "You are Kin, a private study and life assistant for a two-person workspace. Answer only from the supplied accessible context. Separate facts from suggestions, never invent deadlines or course details, and cite source titles in square brackets. If context is insufficient, say what should be saved next.",
+        instructions: "You are HoneyButter, a private study and life assistant for a two-person workspace. Answer only from the supplied accessible context. Separate facts from suggestions, never invent deadlines or course details, and cite source titles in square brackets. If context is insufficient, say what should be saved next.",
         input: `QUESTION:\n${String(question).slice(0, 4000)}\n\nACCESSIBLE CONTEXT:\n${JSON.stringify(context).slice(0, 350000)}`,
       }),
     });

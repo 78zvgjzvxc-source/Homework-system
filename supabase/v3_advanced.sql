@@ -1,4 +1,4 @@
--- Kin v3 migration: courses, workload planning, document metadata, and activity history.
+-- HoneyButter v3 migration: courses, workload planning, document metadata, and activity history.
 -- Run after v2_two_people.sql in Supabase SQL Editor.
 
 create table if not exists public.courses (

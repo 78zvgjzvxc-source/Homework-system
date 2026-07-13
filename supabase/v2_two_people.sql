@@ -1,5 +1,5 @@
--- Kin v2 migration: two identified people, private Brains, and timetables.
--- Run this once in Supabase SQL Editor for an existing Kin database.
+-- HoneyButter v2 migration: two identified people, private Brains, and timetables.
+-- Run this once in Supabase SQL Editor for an existing HoneyButter database.
 
 alter table public.workspace_members add column if not exists member_slot text;
 alter table public.workspace_members add column if not exists display_name text;
@@ -72,9 +72,9 @@ returns uuid language plpgsql security definer set search_path = public as $$
 declare new_workspace uuid;
 begin
   if auth.uid() is null then raise exception 'Authentication required'; end if;
-  if exists (select 1 from public.workspace_members where user_id = auth.uid()) then raise exception 'This account already belongs to a Kin workspace'; end if;
+  if exists (select 1 from public.workspace_members where user_id = auth.uid()) then raise exception 'This account already belongs to a HoneyButter workspace'; end if;
   insert into public.workspaces(name, name_one, name_two, created_by)
-  values (coalesce(nullif(trim(workspace_name), ''), 'Our Kin'), left(trim(first_name), 30), left(trim(second_name), 30), auth.uid())
+  values (coalesce(nullif(trim(workspace_name), ''), 'HoneyButter'), left(trim(first_name), 30), left(trim(second_name), 30), auth.uid())
   returning id into new_workspace;
   insert into public.workspace_members(workspace_id, user_id, role, member_slot, display_name)
   values (new_workspace, auth.uid(), 'owner', 'me', left(trim(first_name), 30));
@@ -88,8 +88,8 @@ begin
   if auth.uid() is null then raise exception 'Authentication required'; end if;
   select id into target from public.workspaces where invite_code = upper(trim(code));
   if target is null then raise exception 'Invite code not found'; end if;
-  if (select count(*) from public.workspace_members where workspace_id = target) >= 2 then raise exception 'This Kin workspace already has two members'; end if;
-  if exists (select 1 from public.workspace_members where user_id = auth.uid()) then raise exception 'This account already belongs to a Kin workspace'; end if;
+  if (select count(*) from public.workspace_members where workspace_id = target) >= 2 then raise exception 'This HoneyButter workspace already has two members'; end if;
+  if exists (select 1 from public.workspace_members where user_id = auth.uid()) then raise exception 'This account already belongs to a HoneyButter workspace'; end if;
   insert into public.workspace_members(workspace_id, user_id, role, member_slot, display_name)
   select target, auth.uid(), 'member', 'partner', name_two from public.workspaces where id = target;
   return target;
