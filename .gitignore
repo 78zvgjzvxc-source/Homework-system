@@ -10,3 +10,9 @@ untitile
 .vscode/
 .DS_Store
 Thumbs.db
+
+# Local JavaScript tooling and secrets
+node_modules/
+.env
+.env.*
+!.env.example

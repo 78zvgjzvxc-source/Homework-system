@@ -11,6 +11,7 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="v4.css">
+  <link rel="stylesheet" href="v5.css">
 </head>
 <body>
   <section class="auth-gate" id="authGate" aria-labelledby="authTitle">
@@ -88,7 +89,7 @@
         </button>
         <button class="nav-item" data-view-target="files">
           <svg viewBox="0 0 24 24"><path d="M4 4h6l2 3h8v13H4z"/><path d="M8 12h8M8 16h5"/></svg>
-          <span>File studio</span><span class="nav-count" id="fileNavCount">0</span>
+          <span>Files</span><span class="nav-count" id="fileNavCount">0</span>
         </button>
         <button class="nav-item" data-view-target="graph">
           <svg viewBox="0 0 24 24"><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="m8.3 10.9 7.4-3.8M8.3 13.1l7.4 3.8M18 8.5v7"/></svg>
@@ -185,7 +186,7 @@
               </div>
               <form class="brain-prompt" id="homeBrainForm">
                 <input id="homeBrainInput" aria-label="Ask your brain" placeholder="What should I focus on this week?" autocomplete="off">
-                <button aria-label="Send prompt"><svg viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></svg></button>
+                <button type="submit" aria-label="Send prompt"><svg viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></svg></button>
               </form>
               <div class="brain-suggestions">
                 <button data-prompt="Summarize our plans">Summarize our plans</button>
@@ -268,11 +269,34 @@
 
       <section class="view" id="filesView" data-view="files">
         <div class="file-page">
-          <header class="file-page-head"><div><p class="eyebrow">DOCUMENTS, CODE, SLIDES, AND RESEARCH</p><h1>File studio</h1><p class="subhead">Open, search, annotate and edit your workspace files.</p></div><div class="page-actions"><button class="secondary-button" id="newTextFileBtn">New text file</button><button class="primary-button" id="studioUploadBtn"><svg viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></svg>Upload files</button><input class="hidden" type="file" id="studioFileInput" multiple accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.csv,.txt,.md,.json,.html,.css,.js,.ts,.py,.java,.sql,.xml,.rtf,.odt,image/*,audio/*"></div></header>
-          <div class="file-studio">
-            <aside class="file-explorer"><div class="explorer-head"><strong>Workspace</strong><button class="icon-button" id="explorerUploadBtn" aria-label="Upload"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button></div><label class="explorer-search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input id="fileSearch" placeholder="Find a file"></label><div class="file-filter-row" id="fileFilters"><button class="active" data-file-filter="all">All</button><button data-file-filter="mine">Mine</button><button data-file-filter="shared">Shared</button></div><div class="file-tree" id="fileTree"></div><div class="storage-note"><span>Private cloud storage</span><small>Office/PDF edits are saved as extracted text and annotations.</small></div></aside>
-            <main class="file-workbench"><div class="editor-tabs" id="editorTabs"><div class="empty-tab">No file open</div></div><div class="editor-toolbar"><div class="editor-mode"><button class="active" data-editor-mode="read">Read</button><button data-editor-mode="edit">Edit text</button></div><div class="editor-actions"><button id="highlightSelectionBtn" title="Highlight selected text"><svg viewBox="0 0 24 24"><path d="m4 20 5-1 10-10-4-4L5 15zM13 7l4 4"/></svg>Highlight</button><button id="saveFileEditsBtn"><svg viewBox="0 0 24 24"><path d="M5 4h12l2 2v14H5zM8 4v6h8V4M8 20v-6h8v6"/></svg>Save</button><button id="downloadStudioFileBtn" title="Download original"><svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg></button></div></div><div class="file-canvas" id="fileCanvas"><div class="file-empty-state"><span>⌘</span><h2>Open a file to begin</h2><p>DOCX, PDF, PPTX, spreadsheets, text and code are supported.</p></div></div><div class="editor-status"><span id="editorFileType">Ready</span><span id="editorWordCount">0 words</span><span id="editorSaveStatus">All changes saved</span></div></main>
-            <aside class="file-inspector"><div class="inspector-section"><span class="modal-kicker">FILE DETAILS</span><div id="fileDetails" class="file-details"><p>Select a file to inspect it.</p></div></div><div class="inspector-section"><div class="inspector-title"><span class="modal-kicker">HIGHLIGHTS</span><span id="highlightCount">0</span></div><div class="highlight-list" id="highlightList"></div></div><div class="inspector-section"><span class="modal-kicker">ASK THIS FILE</span><form class="file-ask" id="fileAskForm"><textarea id="fileAskInput" rows="3" placeholder="Summarize this file or explain a highlighted section…"></textarea><button class="primary-button full">Ask HoneyButter</button></form></div></aside>
+          <header class="file-page-head">
+            <div class="file-heading-copy"><div class="file-breadcrumb"><span>Workspace</span><i>/</i><strong>File viewer</strong></div><h1>Files</h1><p class="subhead">Read, search, highlight and edit everything you study.</p></div>
+            <div class="file-head-actions"><span class="library-summary" id="fileLibrarySummary">0 files in your workspace</span><button class="secondary-button" id="newTextFileBtn"><svg viewBox="0 0 24 24"><path d="M6 3h9l3 3v15H6zM14 3v4h4M9 12h6M9 16h4"/></svg>New text file</button><button class="primary-button" id="studioUploadBtn"><svg viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></svg>Upload files</button><input class="hidden" type="file" id="studioFileInput" multiple accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.csv,.txt,.md,.json,.html,.css,.js,.ts,.py,.java,.sql,.xml,.rtf,.odt,image/*,audio/*"></div>
+          </header>
+          <div class="file-studio" id="fileStudio">
+            <aside class="file-explorer" id="fileExplorer">
+              <div class="explorer-head"><span><strong>Library</strong><small id="fileExplorerCount">0 items</small></span><button class="icon-button" id="explorerUploadBtn" aria-label="Upload files" title="Upload files"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button></div>
+              <label class="explorer-search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input id="fileSearch" placeholder="Search files and content"></label>
+              <div class="file-filter-row" id="fileFilters"><button class="active" data-file-filter="all">All files</button><button data-file-filter="mine">Mine</button><button data-file-filter="shared">Shared</button></div>
+              <div class="file-tree" id="fileTree"></div>
+              <div class="storage-note"><span><i></i>Private cloud storage</span><small>Originals stay intact. Edits and annotations sync separately.</small></div>
+            </aside>
+            <main class="file-workbench">
+              <div class="viewer-topline"><button class="viewer-panel-button" id="toggleFileExplorer" aria-label="Toggle file library" title="Toggle file library"><svg viewBox="0 0 24 24"><path d="M4 5h16v14H4zM9 5v14"/></svg></button><div class="editor-tabs" id="editorTabs"><div class="empty-tab">No file open</div></div><button class="viewer-panel-button" id="toggleFileInspector" aria-label="Toggle file details" title="Toggle details panel"><svg viewBox="0 0 24 24"><path d="M4 5h16v14H4zM15 5v14"/></svg></button></div>
+              <div class="editor-toolbar">
+                <div class="editor-mode"><button class="active" data-editor-mode="read">Preview</button><button data-editor-mode="edit">Edit text</button></div>
+                <div class="viewer-zoom" aria-label="Viewer zoom"><button id="viewerZoomOut" aria-label="Zoom out">−</button><button id="viewerZoomReset" title="Reset zoom"><span id="viewerZoomLabel">100%</span></button><button id="viewerZoomIn" aria-label="Zoom in">+</button></div>
+                <div class="editor-actions"><button id="highlightSelectionBtn" title="Highlight selected text"><svg viewBox="0 0 24 24"><path d="m4 20 5-1 10-10-4-4L5 15zM13 7l4 4"/></svg><span>Highlight</span></button><button id="saveFileEditsBtn"><svg viewBox="0 0 24 24"><path d="M5 4h12l2 2v14H5zM8 4v6h8V4M8 20v-6h8v6"/></svg><span>Save</span></button><button id="downloadStudioFileBtn" title="Download original" aria-label="Download original"><svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg></button><button id="viewerFullscreenBtn" title="Open fullscreen" aria-label="Open fullscreen"><svg viewBox="0 0 24 24"><path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5"/></svg></button></div>
+              </div>
+              <div class="file-canvas" id="fileCanvas"><div class="file-empty-state"><span class="empty-file-mark"><svg viewBox="0 0 24 24"><path d="M6 3h9l3 3v15H6zM14 3v4h4M9 12h6M9 16h4"/></svg></span><h2>Your workspace viewer</h2><p>Choose a file from the library or drop one anywhere in this window.</p><button class="secondary-button" id="emptyUploadBtn">Choose a file</button><div class="supported-file-row"><span>PDF</span><span>DOCX</span><span>PPTX</span><span>XLSX</span><span>CODE</span></div></div></div>
+              <div class="editor-status"><span class="viewer-ready-dot"></span><span id="editorFileType">Ready</span><span id="editorWordCount">0 words</span><span id="editorSaveStatus">All changes saved</span></div>
+            </main>
+            <aside class="file-inspector" id="fileInspector">
+              <div class="inspector-section"><span class="modal-kicker">FILE DETAILS</span><div id="fileDetails" class="file-details"><p>Select a file to inspect it.</p></div></div>
+              <div class="inspector-section"><div class="inspector-title"><span class="modal-kicker">HIGHLIGHTS</span><span id="highlightCount">0</span></div><div class="highlight-list" id="highlightList"></div></div>
+              <div class="inspector-section ask-file-section"><span class="modal-kicker">ASK THIS FILE</span><p>Answers use only content you are allowed to access.</p><form class="file-ask" id="fileAskForm"><textarea id="fileAskInput" rows="3" placeholder="Summarize this file or explain a highlighted section…"></textarea><button class="primary-button full" id="fileAskButton">Ask HoneyButter</button></form></div>
+            </aside>
+            <div class="file-drop-overlay" id="fileDropOverlay"><div><svg viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></svg><strong>Drop files to add them</strong><span>They will open in the viewer automatically</span></div></div>
           </div>
         </div>
       </section>
@@ -346,7 +370,7 @@
     <div class="brain-panel">
       <div class="brain-modal-top"><div><span class="status-pill"><i></i> Searching your accessible Brain</span><h2>Ask HoneyButter</h2></div><button class="icon-button brain-close" id="brainClose" aria-label="Close"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>
       <div class="chat-stream" id="chatStream"><div class="assistant-message"><span class="assistant-avatar">✦</span><div><p>I can use everything in your tasks and vault to help you remember, plan, and connect ideas.</p><small>Try asking “What should we focus on this week?”</small></div></div></div>
-      <form class="chat-form" id="chatForm"><textarea id="chatInput" rows="1" placeholder="Ask about your plans, tasks, or memories..."></textarea><button aria-label="Send"><svg viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></svg></button></form>
+      <form class="chat-form" id="chatForm"><textarea id="chatInput" rows="1" placeholder="Ask about your plans, tasks, or memories..."></textarea><button type="submit" aria-label="Send"><svg viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></svg></button></form>
       <p class="privacy-note"><svg viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>Only memories accessible to the signed-in person are used.</p>
     </div>
   </dialog>

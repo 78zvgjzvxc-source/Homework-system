@@ -1,0 +1,9 @@
+{
+  "scripts": {
+    "audit:buttons": "node scripts/audit-buttons.mjs",
+    "check": "node --check app.js && node --check v4.js && npm run audit:buttons"
+  },
+  "devDependencies": {
+    "supabase": "^2.109.1"
+  }
+}

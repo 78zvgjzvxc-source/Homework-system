@@ -103,6 +103,25 @@ supabase functions deploy embed
 
 Both functions use the existing `OPENAI_API_KEY` Supabase secret. The website never receives that secret. After the SQL and functions finish deploying, refresh the Render website; Render will automatically publish the frontend after this repository is pushed.
 
+## V5 interface and file viewer
+
+V5 refreshes HoneyButter with a cleaner visual system and a dedicated Files workspace. It does not require another Supabase query or Edge Function deployment.
+
+- Modern desktop and mobile navigation, cards, forms, focus states, and dark mode
+- A three-pane file viewer with searchable library, preview/edit modes, zoom, fullscreen, details, highlights, downloads, and file-grounded questions
+- Drag-and-drop uploads and clear empty, loading, disabled, and error states
+- Working account, notification, search, route, editor, viewer-panel, and viewer-toolbar controls
+- A repeatable static interaction audit for every button in `index.html`
+
+Run the local verification suite after changing the interface:
+
+```powershell
+npm install
+npm run check
+```
+
+The Supabase CLI is installed as a local development dependency, so deployment commands can also be run as `npx supabase ...` without installing a global executable.
+
 ### How File Studio editing works
 
 - Text, Markdown, JSON, HTML, CSS, JavaScript, TypeScript, Python, SQL, and similar files open directly in the editable code/text view.

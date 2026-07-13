@@ -20,6 +20,8 @@
   let focusMinutes = 25;
   let focusTimer = null;
   let activeFocus = null;
+  let viewerZoom = 100;
+  let viewerDragDepth = 0;
   const runtimeUrls = new Map();
 
   function minutes(value) {
@@ -180,6 +182,22 @@
     });
   }
   function fileContent(file) { return file?.editedContent ?? file?.extractedContent ?? ""; }
+  function emptyFileHtml() {
+    return `<div class="file-empty-state"><span class="empty-file-mark"><svg viewBox="0 0 24 24"><path d="M6 3h9l3 3v15H6zM14 3v4h4M9 12h6M9 16h4"/></svg></span><h2>Your workspace viewer</h2><p>Choose a file from the library or drop one anywhere in this window.</p><button class="secondary-button" id="emptyUploadBtn">Choose a file</button><div class="supported-file-row"><span>PDF</span><span>DOCX</span><span>PPTX</span><span>XLSX</span><span>CODE</span></div></div>`;
+  }
+  function updateViewerControls(file) {
+    const disabled = !file;
+    ["#highlightSelectionBtn", "#saveFileEditsBtn", "#downloadStudioFileBtn", "#viewerZoomOut", "#viewerZoomReset", "#viewerZoomIn"].forEach((selector) => { const control = $(selector); if (control) control.disabled = disabled; });
+    $$("[data-editor-mode]").forEach((button) => { button.disabled = disabled; });
+    if ($("#fileAskInput")) $("#fileAskInput").disabled = disabled;
+    if ($("#fileAskButton")) $("#fileAskButton").disabled = disabled;
+    if ($("#viewerZoomLabel")) $("#viewerZoomLabel").textContent = `${viewerZoom}%`;
+    if ($("#fileCanvas")) $("#fileCanvas").style.setProperty("--viewer-zoom", String(viewerZoom / 100));
+  }
+  function setViewerZoom(value) {
+    viewerZoom = Math.max(60, Math.min(180, value));
+    updateViewerControls(state().files.find((item) => item.id === activeFileId));
+  }
   function highlightedHtml(file) {
     let html = esc(fileContent(file));
     (state().highlights || []).filter((item) => item.fileId === file.id).forEach((item) => {
@@ -190,6 +208,10 @@
   }
   function renderFiles() {
     const files = filteredFiles();
+    const total = state().files?.length || 0;
+    const shared = (state().files || []).filter((file) => file.visibility === "shared").length;
+    if ($("#fileLibrarySummary")) $("#fileLibrarySummary").textContent = `${total} file${total === 1 ? "" : "s"} · ${shared} shared`;
+    if ($("#fileExplorerCount")) $("#fileExplorerCount").textContent = `${files.length} item${files.length === 1 ? "" : "s"}`;
     $("#fileTree").innerHTML = files.length ? `<span class="file-group-label">FILES · ${files.length}</span>${files.map((file) => `<button class="file-tree-item ${file.id === activeFileId ? "active" : ""}" data-open-file="${file.id}"><span class="file-icon ${esc(file.extension)}">${esc(file.extension.slice(0,4) || "file")}</span><span><strong>${esc(file.name)}</strong><small>${esc(App.ownerLabel(file.owner))} · ${sizeLabel(file.size)}</small></span><time>${new Date(file.updatedAt).toLocaleDateString([], { month: "short", day: "numeric" })}</time></button>`).join("")}` : `<div class="notification-empty">Upload a document, slide deck, spreadsheet or code file.</div>`;
     openFileIds = openFileIds.filter((id) => state().files.some((file) => file.id === id));
     $("#editorTabs").innerHTML = openFileIds.length ? openFileIds.map((id) => { const file = state().files.find((item) => item.id === id); return `<button class="editor-tab ${id === activeFileId ? "active" : ""}" data-open-file="${id}"><span class="file-icon ${esc(file.extension)}">${esc(file.extension.slice(0,3))}</span>${esc(file.name)}<span data-close-file="${id}">×</span></button>`; }).join("") : `<div class="empty-tab">No file open</div>`;
@@ -207,8 +229,10 @@
   function renderActiveFile() {
     const file = state().files.find((item) => item.id === activeFileId);
     if (!file) {
-      $("#fileCanvas").innerHTML = `<div class="file-empty-state"><span>⌘</span><h2>Open a file to begin</h2><p>DOCX, PDF, PPTX, spreadsheets, text and code are supported.</p></div>`;
-      $("#fileDetails").innerHTML = `<p>Select a file to inspect it.</p>`; $("#highlightList").innerHTML = ""; $("#highlightCount").textContent = "0"; return;
+      $("#fileCanvas").innerHTML = emptyFileHtml();
+      $("#fileDetails").innerHTML = `<p>Select a file to inspect it.</p>`; $("#highlightList").innerHTML = `<p class="notification-empty">Highlights from the open file appear here.</p>`; $("#highlightCount").textContent = "0";
+      $("#editorFileType").textContent = "Ready"; $("#editorWordCount").textContent = "0 words"; $("#editorSaveStatus").textContent = "Choose a file to begin";
+      updateViewerControls(null); return;
     }
     const content = fileContent(file);
     const isCode = codeExtensions.has(file.extension) && !["csv","md","txt"].includes(file.extension);
@@ -226,16 +250,17 @@
     $("#editorFileType").textContent = `${file.extension.toUpperCase()} · ${file.visibility}`;
     $("#editorWordCount").textContent = `${content.trim() ? content.trim().split(/\s+/).length : 0} words`;
     $("#editorSaveStatus").textContent = "All changes saved";
-    $("#fileDetails").innerHTML = `<div class="file-detail-row"><span>Name</span><strong>${esc(file.name)}</strong></div><div class="file-detail-row"><span>Owner</span><strong>${esc(App.ownerLabel(file.owner))}</strong></div><div class="file-detail-row"><span>Size</span><strong>${sizeLabel(file.size)}</strong></div><label class="field compact-field"><span>Visibility</span><select id="fileVisibilitySelect" ${file.owner !== App.currentSlot() ? "disabled" : ""}><option value="shared" ${file.visibility === "shared" ? "selected" : ""}>Shared</option><option value="private" ${file.visibility === "private" ? "selected" : ""}>Private</option></select></label>${file.owner === App.currentSlot() ? `<button class="danger-link" data-delete-studio-file="${file.id}">Delete file</button>` : ""}`;
+    $("#fileDetails").innerHTML = `<div class="file-detail-row"><span>Name</span><strong>${esc(file.name)}</strong></div><div class="file-detail-row"><span>Owner</span><strong>${esc(App.ownerLabel(file.owner))}</strong></div><div class="file-detail-row"><span>Size</span><strong>${sizeLabel(file.size)}</strong></div><div class="file-detail-row"><span>Last updated</span><strong>${new Date(file.updatedAt).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}</strong></div><label class="field compact-field"><span>Visibility</span><select id="fileVisibilitySelect" ${file.owner !== App.currentSlot() ? "disabled" : ""}><option value="shared" ${file.visibility === "shared" ? "selected" : ""}>Shared</option><option value="private" ${file.visibility === "private" ? "selected" : ""}>Private</option></select></label>${file.owner === App.currentSlot() ? `<button class="danger-link" data-delete-studio-file="${file.id}">Delete file</button>` : ""}`;
     const highlights = (state().highlights || []).filter((item) => item.fileId === file.id);
     $("#highlightCount").textContent = String(highlights.length);
     $("#highlightList").innerHTML = highlights.map((item) => `<div class="highlight-item"><strong>“${esc(item.selectedText)}”</strong><small>${esc(item.note || "Highlighted passage")}</small></div>`).join("") || `<p class="notification-empty">Select text and press Highlight.</p>`;
     $$("[data-editor-mode]").forEach((button) => button.classList.toggle("active", button.dataset.editorMode === editorMode));
+    updateViewerControls(file);
   }
 
   function openFile(id) {
     if (!state().files.some((file) => file.id === id)) return;
-    activeFileId = id; if (!openFileIds.includes(id)) openFileIds.push(id); renderFiles();
+    activeFileId = id; viewerZoom = 100; if (!openFileIds.includes(id)) openFileIds.push(id); renderFiles();
     const file = state().files.find((item) => item.id === id);
     window.KinCloud?.updatePresence?.("files", { editingFile: file.name }).catch(() => {});
   }
@@ -268,7 +293,7 @@
   }
   async function downloadActiveFile() {
     const file = state().files.find((item) => item.id === activeFileId);
-    if (!file) return;
+    if (!file) { App.toast("Open a file before downloading."); return; }
     try {
       let blob;
       if (file.storagePath && window.KinCloud?.downloadWorkspaceFile) blob = await window.KinCloud.downloadWorkspaceFile(file.storagePath);
@@ -329,6 +354,18 @@
     $$(".graph-edge").forEach((edge) => edge.style.opacity = type === "all" ? "" : ".16");
   }
 
+  function toggleViewerPanel(panel) {
+    const studio = $("#fileStudio");
+    studio.classList.toggle(panel === "explorer" ? "explorer-collapsed" : "inspector-collapsed");
+  }
+  function toggleViewerFullscreen() {
+    const studio = $("#fileStudio");
+    const open = studio.classList.toggle("viewer-fullscreen");
+    document.body.classList.toggle("viewer-open", open);
+    $("#viewerFullscreenBtn").title = open ? "Exit fullscreen" : "Open fullscreen";
+    App.toast(open ? "File viewer expanded. Press Escape to exit." : "File viewer restored.");
+  }
+
   function updateBrowserAlertButton() {
     const button = $("#enableBrowserAlerts");
     if (!button) return;
@@ -385,7 +422,10 @@
   $("#studioFileInput").addEventListener("change", async (event) => { await uploadFiles(event.target.files); event.target.value = ""; });
   $("#newTextFileBtn").addEventListener("click", newTextFile); $("#fileSearch").addEventListener("input", renderFiles);
   $("#highlightSelectionBtn").addEventListener("click", highlightSelection); $("#saveFileEditsBtn").addEventListener("click", saveFileEdits); $("#downloadStudioFileBtn").addEventListener("click", downloadActiveFile);
-  $("#fileAskForm").addEventListener("submit", (event) => { event.preventDefault(); const file = state().files.find((item) => item.id === activeFileId); const question = $("#fileAskInput").value.trim(); if (!file || !question) return; App.askBrain(`Using the workspace file “${file.name}”, ${question}`); $("#fileAskInput").value = ""; });
+  $("#fileAskForm").addEventListener("submit", (event) => { event.preventDefault(); const file = state().files.find((item) => item.id === activeFileId); const question = $("#fileAskInput").value.trim(); if (!file) { App.toast("Open a file before asking a question."); return; } if (!question) { App.toast("Write a question about the open file first."); $("#fileAskInput").focus(); return; } App.askBrain(`Using the workspace file “${file.name}”, ${question}`); $("#fileAskInput").value = ""; });
+  $("#toggleFileExplorer").addEventListener("click", () => toggleViewerPanel("explorer")); $("#toggleFileInspector").addEventListener("click", () => toggleViewerPanel("inspector"));
+  $("#viewerZoomOut").addEventListener("click", () => setViewerZoom(viewerZoom - 10)); $("#viewerZoomIn").addEventListener("click", () => setViewerZoom(viewerZoom + 10)); $("#viewerZoomReset").addEventListener("click", () => setViewerZoom(100));
+  $("#viewerFullscreenBtn").addEventListener("click", toggleViewerFullscreen);
   $("#globalSearch").addEventListener("input", () => setTimeout(renderCommandSuggestions, 0));
   $("#studioEditor")?.addEventListener?.("input", () => { $("#editorSaveStatus").textContent = "Unsaved changes"; });
 
@@ -394,11 +434,12 @@
     if (event.target.id === "fileVisibilitySelect") { const file = state().files.find((item) => item.id === activeFileId); if (file && file.owner === App.currentSlot()) { file.visibility = event.target.value; file.updatedAt = new Date().toISOString(); save(`${file.name} is now ${file.visibility}.`); } }
   });
   document.addEventListener("click", (event) => {
+    if (event.target.closest("#emptyUploadBtn")) { $("#studioFileInput").click(); return; }
     const close = event.target.closest("[data-close-file]");
     if (close) { event.stopPropagation(); openFileIds = openFileIds.filter((id) => id !== close.dataset.closeFile); if (activeFileId === close.dataset.closeFile) activeFileId = openFileIds.at(-1) || null; renderFiles(); return; }
     const open = event.target.closest("[data-open-file]"); if (open) { openFile(open.dataset.openFile); return; }
     const filter = event.target.closest("[data-file-filter]"); if (filter) { fileFilter = filter.dataset.fileFilter; $$("[data-file-filter]").forEach((button) => button.classList.toggle("active", button === filter)); renderFiles(); }
-    const mode = event.target.closest("[data-editor-mode]"); if (mode) { editorMode = mode.dataset.editorMode; renderActiveFile(); }
+    const mode = event.target.closest("[data-editor-mode]"); if (mode) { if (!activeFileId) { App.toast("Open a file before changing viewer mode."); return; } editorMode = mode.dataset.editorMode; renderActiveFile(); }
     const remove = event.target.closest("[data-delete-studio-file]"); if (remove) deleteFile(remove.dataset.deleteStudioFile);
     const command = event.target.closest("[data-v4-command]"); if (command) runCommand(command.dataset.v4Command, command.dataset.commandValue);
     const graphFilter = event.target.closest("[data-graph-filter]"); if (graphFilter) applyGraphTypeFilter(graphFilter.dataset.graphFilter);
@@ -412,6 +453,11 @@
   document.addEventListener("drop", (event) => {
     const day = event.target.closest("[data-timetable-day]"); if (!day) return; event.preventDefault(); day.classList.remove("drag-over"); const id = event.dataTransfer.getData("text/honeybutter-class"); const item = state().timetables.find((entry) => entry.id === id); if (item && item.day !== Number(day.dataset.timetableDay)) { item.day = Number(day.dataset.timetableDay); save(`${item.title} moved to ${day.querySelector(".timetable-day-head").textContent}.`); }
   });
+  $("#fileStudio").addEventListener("dragenter", (event) => { if (!event.dataTransfer?.types?.includes("Files")) return; event.preventDefault(); viewerDragDepth += 1; $("#fileStudio").classList.add("drag-active"); });
+  $("#fileStudio").addEventListener("dragover", (event) => { if (event.dataTransfer?.types?.includes("Files")) { event.preventDefault(); event.dataTransfer.dropEffect = "copy"; } });
+  $("#fileStudio").addEventListener("dragleave", (event) => { if (!event.dataTransfer?.types?.includes("Files")) return; viewerDragDepth = Math.max(0, viewerDragDepth - 1); if (!viewerDragDepth) $("#fileStudio").classList.remove("drag-active"); });
+  $("#fileStudio").addEventListener("drop", async (event) => { if (!event.dataTransfer?.files?.length) return; event.preventDefault(); event.stopPropagation(); viewerDragDepth = 0; $("#fileStudio").classList.remove("drag-active"); await uploadFiles(event.dataTransfer.files); });
+  document.addEventListener("keydown", (event) => { if (event.key === "Escape" && $("#fileStudio").classList.contains("viewer-fullscreen")) toggleViewerFullscreen(); });
 
   try {
     const storedFocus = JSON.parse(localStorage.getItem("honeybutter-active-focus"));
