@@ -144,11 +144,11 @@ create or replace function public.match_accessible_memories(
 returns table(note_id text, title text, content text, similarity double precision)
 language sql stable security invoker set search_path = ''
 as $$
-  select n.id, n.title, n.content, 1 - (e.embedding <=> query_embedding) as similarity
+  select n.id, n.title, n.content, 1 - (e.embedding OPERATOR(extensions.<=>) query_embedding) as similarity
   from public.memory_embeddings e
   join public.notes n on n.id = e.note_id
   where e.workspace_id = match_workspace and e.embedding is not null
-  order by e.embedding <=> query_embedding
+  order by e.embedding OPERATOR(extensions.<=>) query_embedding
   limit greatest(1, least(match_count, 20));
 $$;
 grant execute on function public.match_accessible_memories(extensions.vector, uuid, integer) to authenticated;
